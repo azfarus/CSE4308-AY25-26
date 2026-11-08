@@ -1,0 +1,5 @@
+-- Format: ID|Name|Age|Major|GPA
+1|Alice Johnson|20|Computer Science|3.8
+2|Bob Smith|22|Mathematics|3.5
+3|Carol Davis|21|Physics|3.9
+4|David Brown|23|Computer Science|3.6

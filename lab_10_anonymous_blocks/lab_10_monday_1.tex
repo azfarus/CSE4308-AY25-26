@@ -1,0 +1,691 @@
+% !TEX program = lualatex
+\documentclass[12pt,a4paper]{article}
+\usepackage{graphicx}
+\usepackage{fontspec}
+\setmonofont{Latin Modern Mono}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{geometry}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{booktabs} 
+\usepackage{float}    
+\usepackage{amsmath}
+
+% =======================================================
+%  USER CONFIGURATION
+% =======================================================
+\newcommand{\labNo}{Lab 10}
+\newcommand{\labTopic}{PL/pgSQL: Anonymous Blocks}
+\newcommand{\courseCode}{CSE 4308}
+\newcommand{\courseTitleShort}{DBMS Lab}
+\newcommand{\courseTitleLong}{DATABASE MANAGEMENT SYSTEMS LAB}
+\newcommand{\instructorName}{Samnun Azfar, Jr. Lecturer, CSE\\ Samia Nawsheen, Jr. Lecturer, CSE}
+\newcommand{\academicYear}{AY25-26}
+
+% --- SOLUTION TOGGLE ---
+% Change \showsolutionstrue to \showsolutionsfalse to generate 
+% the student version (hidden answers).
+\newif\ifshowsolutions
+% \showsolutionstrue 
+\showsolutionsfalse
+% =======================================================
+
+\geometry{margin=1in}
+
+% -
+% Header and Footer Configuration
+% -
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\labNo}                        % Uses variable
+\rhead{\courseCode: \courseTitleShort} % Uses variables
+
+% Centered footer with page number
+\cfoot{\thepage}
+% Ensure header/footer width matches text block
+\setlength{\headwidth}{\textwidth}
+
+% -
+% Code Listing Style
+% -
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    tabsize=2,
+    frame=single,
+    numbers=none,
+    columns=fullflexible,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+}
+
+\lstset{style=mystyle}
+
+\begin{document}
+
+% --
+% TITLE PAGE
+% --
+\begin{titlepage}
+    \centering
+    \vspace*{2\baselineskip}
+
+    \rule{14cm}{2pt}\vspace*{-0.8\baselineskip}\vspace*{1.5pt}
+    \rule{14cm}{0.5pt}\vspace{2\baselineskip}
+
+    {\Huge\bfseries\scshape \labNo\par} % Uses variable
+    \vspace{3mm}
+    {\Large \labTopic} % Uses variable
+    \vspace{3mm}
+
+    \rule{14cm}{0.5pt}\vspace*{-0.7\baselineskip}\vspace{2.5pt}
+    \rule{14cm}{2pt}
+
+    \vspace{2\baselineskip}
+
+    {\Large\bfseries \courseCode\par} % Uses variable
+    \vspace{1\baselineskip}
+    {\large \courseTitleLong\par} % Uses variable
+
+    \vfill
+    {\normalsize Prepared by:\\ \instructorName\par} % Uses variable
+    {\normalsize Academic Year: \academicYear\par} % Uses variable
+\end{titlepage}
+
+\newpage
+\tableofcontents
+\newpage
+
+% =======================================================
+% SECTION: LAB WORKFLOW
+% =======================================================
+\section{Lab Workflow}
+
+
+
+\textit{Repeat this subsection for every single lab.}
+
+\begin{enumerate}
+\item Connect to the internet by running nmtui in terminal, add a dsl connection, then go back and activate that dsl connection. Make sure that your net id is not being used in any other pc or router, if you face any issue, use any other net id from your friends which is not being used.
+
+\item Download all the files posted in the google classroom.
+
+\item Disconnect from the \textbf{dsl} connection via nmtui, connect to the ethernet/wired connection via nmtui. If no such connection exists, create an \textbf{ethernet} connection  and then activate.
+
+    \item \textbf{Create Your Role and Database}
+
+Inside the PostgreSQL shell, create your own role (user) and database.
+
+1. In the Linux terminal:
+\begin{lstlisting}[language=bash]
+psql
+\end{lstlisting}
+
+Expected prompt:
+\begin{lstlisting}
+cse=#
+\end{lstlisting}
+
+2. Create Your Role and Database
+
+Copy and run the following commands inside PostgreSQL:
+\begin{lstlisting}[language=SQL]
+-- 1. Terminate existing database connections
+SELECT pg_terminate_backend(pid)
+FROM pg_stat_activity
+WHERE datname = 'cse4308_12345'
+  AND pid <> pg_backend_pid();
+
+-- 2. Remove existing database
+DROP DATABASE IF EXISTS cse4308_12345;
+
+-- 3. Remove existing role
+DROP ROLE IF EXISTS student_12345;
+
+-- 4. Create role
+CREATE ROLE student_12345 LOGIN;
+
+-- 5. Set password
+ALTER ROLE student_12345
+WITH PASSWORD 'student12345';
+
+-- 6. Create database
+CREATE DATABASE cse4308_12345
+OWNER student_12345;
+
+-- 7. Grant privileges
+GRANT ALL PRIVILEGES
+ON DATABASE cse4308_12345
+TO student_12345;
+\end{lstlisting}
+
+3. Exit PostgreSQL:
+
+   \begin{lstlisting}[language=SQL]
+   \q
+   \end{lstlisting}
+
+\item \textbf{Connect Using Your Newly Created User}
+
+1. Connect to Your Database:
+
+   Use the following command to log in as the \texttt{student\_12345} user:
+
+   \begin{lstlisting}[language=SQL]
+   psql -h localhost -U student_12345 -d cse4308_12345
+   \end{lstlisting}
+
+2. Verify the Connection:
+
+   Verify that you are connected to the correct database with the following command:
+
+   \begin{lstlisting}[language=SQL]
+   \conninfo
+   \end{lstlisting}
+
+   Expected output:
+
+   \begin{lstlisting}
+   Database: cse4308_12345, User: student_12345
+   \end{lstlisting}
+
+3. Exit PostgreSQL:
+
+   \begin{lstlisting}[language=SQL]
+   \q
+   \end{lstlisting}
+
+\item \textbf{Load the Lab SQL File (MUST be run outside psql)}
+
+Load the SQL file that sets up the tables and inserts initial data.
+
+1. Load the SQL File:
+
+   Run the following command to load the lab SQL file:
+
+   \begin{lstlisting}[language=SQL]
+   psql -h localhost -U student_12345 -d cse4308_12345 -f /home/cse/Downloads/lab_10_setup.sql
+   \end{lstlisting}
+
+   This will:
+   - Drop old tables (if they exist).
+   - Create new tables.
+   - Insert initial rows of data.
+
+\item \textbf{Reconnect and Verify Tables}
+
+After loading the SQL file, reconnect to PostgreSQL to verify that the tables have been created.
+
+1. Reconnect to Your Database:
+
+   \begin{lstlisting}[language=SQL]
+   psql -h localhost -U student_12345 -d cse4308_12345
+   \end{lstlisting}
+
+2. Check Tables:
+
+   Verify the tables have been created by listing them:
+
+   \begin{lstlisting}[language=SQL]
+   \dt
+   \end{lstlisting}
+
+3. View Table Data:
+
+   Verify the data by running the following SQL queries:
+
+   \begin{lstlisting}[language=SQL]
+   SELECT * FROM <table_name>;
+   \end{lstlisting}
+
+\item Open a text editor and save it in the appropriate submission name format \\ \texttt{fullid\_CSE4308\_L10\_T1.sql}. You will use this text editor to write your solutions, make sure to save it after writing each solution. The structure of this file will be:
+\begin{lstlisting}[language=SQL]
+-- Task 1
+INSERT INTO students (student_id, name, major, gpa)
+VALUES (104, 'David', 'ME', 3.60);
+--Task 2
+SELECT name, gpa FROM students WHERE major = 'CSE';
+\end{lstlisting}
+\end{enumerate}
+=======================================================
+% SECTION: DATABASE SCHEMA
+% =======================================================
+\section{Database Schema \& Data}
+\textbf{Instructions:} Save this code as \texttt{lab\_10\_setup.sql} and run it using \texttt{\textbackslash i lab\_10\_setup.sql} in your psql terminal. This script generates a dataset of 1,000 employees with varying salaries and departments to simulate a real-world scenario.
+
+\begin{lstlisting}[language=SQL, caption={lab\_10\_setup.sql}]
+-- 1. CLEANUP
+DROP TABLE IF EXISTS employees;
+
+-- 2. CREATE TABLE
+CREATE TABLE employees (
+    employee_id SERIAL PRIMARY KEY,
+    first_name  VARCHAR(50),
+    last_name   VARCHAR(50),
+    salary      NUMERIC(10, 2),
+    department  VARCHAR(50)
+);
+
+-- 3. INSERT KEY PERSONNEL (Deterministic Data)
+-- We insert these specific people so we can always find them in queries
+INSERT INTO employees (first_name, last_name, salary, department) VALUES 
+('Alice', 'Director', 25000.00, 'Management'),
+('Bob', 'Architect', 15000.00, 'IT'),
+('Charlie', 'Manager', 12000.00, 'Marketing'),
+('Rahim', 'Uddin', 4500.00, 'Operations');
+
+-- 4. BULK INSERT (Randomized Data)
+-- This generates 1000 fake employees
+INSERT INTO employees (first_name, last_name, salary, department)
+SELECT 
+    -- Pick a random first name from the array (Mixed International & Bangladeshi)
+    (ARRAY[
+        'John','Jane','Mike','Sara','Tom','Emily','Chris','Anna','Steve','Laura',
+        'Rahim','Karim','Fatima','Ayesha','Rafiq','Jabbar','Nasrin','Monir','Sultana','Kamal'
+    ])[floor(random() * 20 + 1)],
+    
+    -- Pick a random last name (Mixed International & Bangladeshi)
+    (ARRAY[
+        'Smith','Johnson','Williams','Jones','Brown','Davis','Miller','Wilson','Moore','Taylor',
+        'Ahmed','Hossain','Khan','Chowdhury','Rahman','Islam','Sarker','Uddin','Ali','Hasan'
+    ])[floor(random() * 20 + 1)],
+    
+    -- Generate random salary between 3,000 and 18,000
+    ROUND((random() * 15000 + 3000)::numeric, 2),
+    
+    -- Pick a random department
+    (ARRAY['IT', 'HR', 'Management', 'Marketing', 'Sales', 'Operations'])[floor(random() * 6 + 1)]
+FROM generate_series(1, 1000);
+
+-- 5. VERIFY
+-- Should return 1004 rows
+SELECT count(*) as total_employees FROM employees;
+\end{lstlisting}
+
+% =======================================================
+% SECTION: INTRODUCTION TO PL/pgSQL
+% =======================================================
+\newpage
+\section{Introduction to PL/pgSQL}
+
+PL/pgSQL (Procedural Language/PostgreSQL Structured Query Language) extends SQL by adding procedural constructs. While SQL is declarative (stating \textit{what} you want), PL/pgSQL allows you to state \textit{how} to achieve it using loops, variables, and logic.
+
+\subsection{Anonymous Blocks}
+An \textbf{Anonymous Block} is a piece of code that is executed immediately and not stored in the database. In PostgreSQL, this is done using the \texttt{DO} statement.
+
+\textbf{Structure:}
+The code body must be enclosed in Dollar Quotes (\texttt{\$\$}).
+
+
+\begin{lstlisting}[language=SQL]
+DO $$ 
+DECLARE
+    -- Variable declarations
+BEGIN
+    -- Execution logic
+EXCEPTION
+    -- Error handling
+END $$;
+\end{lstlisting}
+
+\subsection{Outputting Text}
+PostgreSQL uses \texttt{RAISE NOTICE} to print messages to the console (similar to \texttt{System.out.println} in Java or \texttt{printf} in C).
+
+% =======================================================
+% SECTION: VARIABLES \& ARITHMETIC
+% =======================================================
+\section{Variables and Arithmetic}
+
+Variables must be declared in the \texttt{DECLARE} section. You can initialize them using the \texttt{:=} operator.
+
+\begin{lstlisting}[language=SQL, caption={Geometry Calculation}]
+DO $$ 
+DECLARE
+    v_radius    NUMERIC := 5.5;
+    v_pi        CONSTANT NUMERIC := 3.14159;
+    v_area      NUMERIC;
+BEGIN
+    -- Formula: Area = pi * r^2
+    v_area := v_pi * (v_radius ^ 2);
+
+    RAISE NOTICE 'Radius: %', v_radius;
+    RAISE NOTICE 'Calculated Area: %', v_area; 
+END $$;
+\end{lstlisting}
+
+% =======================================================
+% SECTION: INTERACTING WITH DATA
+% =======================================================
+\section{Single Row Queries (SELECT INTO)}
+
+To use data from a table inside a PL/pgSQL block, you cannot simply write \texttt{SELECT * FROM table}. The result must be stored in a variable using the \texttt{INTO} keyword.
+
+\textbf{Rule:} The query must return exactly \textbf{one} row. If it returns zero rows or multiple rows, it may raise an error or warning depending on configuration.
+
+\begin{lstlisting}[language=SQL, caption={Fetching Employee Data}]
+DO $$ 
+DECLARE
+    v_emp_id        INT := 1;
+    v_full_name     TEXT;
+    v_salary        NUMERIC;
+BEGIN
+    -- 1. Fetch data into variables
+    SELECT first_name || ' ' || last_name, salary 
+    INTO v_full_name, v_salary
+    FROM employees 
+    WHERE employee_id = v_emp_id;
+
+    RAISE NOTICE 'Employee: % earns %', v_full_name, v_salary;
+
+    -- 2. Use variables in DML (Update)
+    UPDATE employees 
+    SET salary = salary + 100 
+    WHERE employee_id = v_emp_id;
+    
+    RAISE NOTICE 'Salary updated.';
+END $$;
+\end{lstlisting}
+
+% =======================================================
+% SECTION: CONTROL STRUCTURES
+% =======================================================
+\newpage
+\section{Control Structures}
+
+\subsection{Conditional Logic (IF/ELSE)}
+PL/pgSQL supports \texttt{IF-THEN-ELSIF-ELSE} logic.
+
+\begin{lstlisting}[language=SQL, caption={Salary Evaluation}]
+DO $$ 
+DECLARE
+    v_salary NUMERIC;
+BEGIN
+    -- Get Alice's salary
+    SELECT salary INTO v_salary FROM employees WHERE first_name = 'Alice';
+
+    IF v_salary > 10000 THEN
+        RAISE NOTICE 'Status: Executive Level';
+    ELSIF v_salary BETWEEN 5000 AND 10000 THEN
+        RAISE NOTICE 'Status: Manager Level';
+    ELSE
+        RAISE NOTICE 'Status: Entry Level';
+    END IF;
+END $$;
+\end{lstlisting}
+
+\subsection{CASE Statement}
+The \texttt{CASE} statement is useful for selecting a value based on multiple patterns.
+
+\begin{lstlisting}[language=SQL]
+DO $$ 
+DECLARE
+    v_grade CHAR(1) := 'B';
+    v_result TEXT;
+BEGIN
+    CASE v_grade
+        WHEN 'A' THEN v_result := 'Excellent';
+        WHEN 'B' THEN v_result := 'Good';
+        ELSE v_result := 'Average';
+    END CASE;
+    
+    RAISE NOTICE 'Grade B means: %', v_result;
+END $$;
+\end{lstlisting}
+
+% =======================================================
+% SECTION: LOOPS
+% =======================================================
+\section{Loops}
+
+\subsection{WHILE Loop}
+Executes as long as the condition is true.
+
+\begin{lstlisting}[language=SQL]
+DO $$ 
+DECLARE 
+    v_counter INT := 1;
+BEGIN
+    WHILE v_counter <= 3 LOOP
+        RAISE NOTICE 'Count: %', v_counter;
+        v_counter := v_counter + 1;
+    END LOOP;
+END $$;
+\end{lstlisting}
+
+\subsection{FOR Loop (Iterating Query Results)}
+This is the most powerful loop in PL/pgSQL. It allows you to iterate over every row returned by a query without explicitly opening or closing cursors.
+
+\begin{lstlisting}[language=SQL, caption={Looping through rows}]
+DO $$ 
+DECLARE
+    r RECORD; -- A generic holder for row data
+BEGIN
+    RAISE NOTICE '--- IT Department Staff ---';
+    
+    -- "r" becomes a row for every iteration
+    FOR r IN 
+        SELECT first_name, salary FROM employees WHERE department = 'IT' 
+    LOOP
+        RAISE NOTICE 'Name: %, Salary: %', r.first_name, r.salary;
+    END LOOP;
+END $$;
+\end{lstlisting}
+
+% =======================================================
+% SECTION: ADVANCED CONCEPTS
+% =======================================================
+\newpage
+\section{Using WITH (CTEs) in Blocks}
+
+You cannot start a \texttt{DO} block with \texttt{WITH}. However, you can use Common Table Expressions (CTEs) inside the SQL statements contained within the block.
+
+\begin{lstlisting}[language=SQL, caption={CTE inside Anonymous Block}]
+DO $$ 
+DECLARE
+    r RECORD;
+BEGIN
+    -- We want to find employees who earn more than the average
+    FOR r IN 
+        WITH AvgSal AS (
+            SELECT AVG(salary) as val FROM employees
+        )
+        SELECT e.first_name, e.salary, a.val as average
+        FROM employees e, AvgSal a
+        WHERE e.salary > a.val
+    LOOP
+        RAISE NOTICE '% earns % (Above Avg: %)', 
+            r.first_name, r.salary, ROUND(r.average, 2);
+    END LOOP;
+END $$;
+\end{lstlisting}
+
+% =======================================================
+% SECTION: LAB TASKS
+% =======================================================
+\newpage
+\section{Lab Tasks}
+
+\textbf{Scenario:} You are the database administrator for a startup. You need to perform complex updates and generate reports using PL/pgSQL.
+
+\subsection*{Task 1}
+Write an anonymous block that iterates through all employees.
+\begin{itemize}
+    \item If the employee is in \texttt{'Management'}, give them a 5\% raise.
+    \item If the employee is in \texttt{'IT'}, give them a 10\% raise.
+    \item All others get a 3\% raise.
+    \item Print the Name, Old Salary, and New Salary for each person as the loop runs.
+\end{itemize}
+
+\ifshowsolutions
+\textbf{Solution:}
+\begin{lstlisting}[language=SQL]
+DO $$ 
+DECLARE
+    r RECORD;
+    v_new_salary NUMERIC;
+    v_raise_percent NUMERIC;
+BEGIN
+    RAISE NOTICE '--- Starting Salary Updates ---';
+    
+    -- Iterate through every employee using a FOR loop over a query
+    FOR r IN SELECT employee_id, first_name, last_name, department, salary FROM employees LOOP
+        
+        -- Determine raise percentage based on department
+        IF r.department = 'Management' THEN
+            v_raise_percent := 0.05;
+        ELSIF r.department = 'IT' THEN
+            v_raise_percent := 0.10;
+        ELSE
+            v_raise_percent := 0.03;
+        END IF;
+
+        -- Calculate new salary
+        v_new_salary := r.salary + (r.salary * v_raise_percent);
+
+        -- Update the specific row
+        UPDATE employees 
+        SET salary = v_new_salary 
+        WHERE employee_id = r.employee_id;
+
+        -- Print details
+        RAISE NOTICE 'Employee: % % (Dept: %) - Old: %, New: %', 
+            r.first_name, r.last_name, r.department, r.salary, v_new_salary;
+            
+    END LOOP;
+END $$;
+\end{lstlisting}
+\fi
+
+\subsection*{Task 2}
+Write an anonymous block to calculate the total tax the company must deduct.
+\begin{itemize}
+    \item Declare a variable \texttt{v\_total\_tax} initialized to 0.
+    \item Iterate through all employees.
+    \item Determine tax:
+    \begin{itemize}
+        \item Salary $> 10,000$: Tax is 20\%.
+        \item Salary $5,000 - 10,000$: Tax is 10\%.
+        \item Salary $< 5,000$: Tax is 0\%.
+    \end{itemize}
+    \item Sum up the tax and print the final \texttt{v\_total\_tax} at the end.
+\end{itemize}
+
+\ifshowsolutions
+\textbf{Solution:}
+\begin{lstlisting}[language=SQL]
+DO $$ 
+DECLARE
+    r RECORD;
+    v_total_tax NUMERIC := 0;
+    v_individual_tax NUMERIC;
+    v_tax_rate NUMERIC;
+BEGIN
+    RAISE NOTICE '--- Calculating Total Tax Liability ---';
+
+    FOR r IN SELECT salary FROM employees LOOP
+        
+        -- Determine tax rate using CASE
+        CASE 
+            WHEN r.salary > 10000 THEN
+                v_tax_rate := 0.20;
+            WHEN r.salary >= 5000 AND r.salary <= 10000 THEN
+                v_tax_rate := 0.10;
+            ELSE
+                v_tax_rate := 0.0;
+        END CASE;
+
+        -- Calculate tax for this employee
+        v_individual_tax := r.salary * v_tax_rate;
+        
+        -- Add to running total
+        v_total_tax := v_total_tax + v_individual_tax;
+        
+    END LOOP;
+
+    RAISE NOTICE 'Total Tax to be deducted: %', v_total_tax;
+END $$;
+\end{lstlisting}
+\fi
+
+\subsection*{Task 3}
+\textbf{Problem:} The company has decided to recognize the first 5 employees (IDs 1 to 5) as the "Founding Members".
+\begin{itemize}
+    \item Use a loop that starts with a counter at 1 and stops at 5.
+    \item Update the employee whose \texttt{employee\_id} matches the counter.
+    \item Change their \texttt{department} to \texttt{'Founders'}.
+    \item Increase their \texttt{salary} by \$5000.
+    \item Print: "Employee [ID] promoted to Founder status."
+\end{itemize}
+
+\ifshowsolutions
+\textbf{Solution:}
+\begin{lstlisting}[language=SQL]
+DO $$ 
+DECLARE
+    v_counter INT := 1;
+BEGIN
+    RAISE NOTICE '--- Hiring Interns ---';
+
+    WHILE v_counter <= 5 LOOP
+        INSERT INTO employees (first_name, last_name, salary, department)
+        VALUES (
+            'Intern',           -- First Name
+            CAST(v_counter AS TEXT), -- Last Name (e.g., "1")
+            2000.00,            -- Fixed Salary
+            'Interns'           -- Fixed Department
+        );
+
+        RAISE NOTICE 'Hired Intern %', v_counter;
+        v_counter := v_counter + 1;
+    END LOOP;
+END $$;
+\end{lstlisting}
+\fi
+
+\subsection*{Task 4}
+Calculate the projected pension for Employee ID 10.
+\begin{itemize}
+    \item Retrieve the salary of the employee with \texttt{employee\_id = 10}.
+    \item Calculate the pension amount as 65\% of their current salary.
+    \item Print: "Employee [Name] will receive a pension of [Amount]".
+\end{itemize}
+
+\ifshowsolutions
+\textbf{Solution:}
+\begin{lstlisting}[language=SQL]
+DO $$ 
+DECLARE
+    v_name TEXT;
+    v_salary NUMERIC;
+    v_pension NUMERIC;
+BEGIN
+    -- Retrieve Name and Salary
+    SELECT first_name || ' ' || last_name, salary 
+    INTO v_name, v_salary
+    FROM employees 
+    WHERE employee_id = 10;
+
+    -- Calculate 65%
+    v_pension := v_salary * 0.65;
+
+    RAISE NOTICE 'Employee % will receive a pension of %', v_name, v_pension;
+END $$;
+\end{lstlisting}
+\fi
+\end{document}

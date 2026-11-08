@@ -1,0 +1,89 @@
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{
+ a4paper,
+ margin=1in,
+}
+\title{\textbf{Lab ISO Documentation (Ubuntu 22.04 LTS)}}
+\author{Samnun Azfar, Jr. Lecturer, CSE \\ Samia Nawsheen, Jr. Lecturer, CSE}
+\date{November 2026}
+
+\begin{document}
+
+\maketitle
+
+\section{User Accounts}
+Two user accounts are pre-configured on the system.
+
+\subsection*{Standard User (For Students)}
+\begin{itemize}
+    \item \textbf{Username:} \texttt{cse}
+    \item \textbf{Password:} \texttt{123}
+    \item \textbf{Notes:} This is the primary user account for student's lab work. This user has full \texttt{sudo} privileges for lab convenience.
+\end{itemize}
+
+\subsection*{Administrator Account (For Faculties)}
+\begin{itemize}
+    \item \textbf{Username:} \texttt{admin}
+    \item \textbf{Password:} \texttt{1ut01ccs3}
+    \item \textbf{Notes:} This account has full \texttt{sudo} privileges and is the only account permitted to log in via SSH for remote administration. \textbf{This password must be kept confidential and should not be shared with students.}
+\end{itemize}
+
+\section{Lab Monitoring (Epoptes), Clean-up}
+\textbf{Epoptes} is a classroom monitoring software.
+\begin{itemize}
+    \item \textbf{Connection Script:} There is a script named \texttt{epoptes\_connect.sh} in the directory \texttt{\string~/Documents/Scripts}. Running that script will update all the turned-on PCs under the current subnetwork and connect them to the teacher PC.
+    \item \textbf{Usage:} Afterwards, all PCs can be monitored (or taken access of) using the \texttt{epoptes} Program. 
+    \item \textbf{Clean-up Script:} The \texttt{\string~/Documents/Scripts} directory will also contain a script named \texttt{clear\_files.sh} which will clear all the non-essential (e.g., task files) of all PCs currently turned on and on the same subnet.
+    \item \textbf{Custom Configuration:} Any other SSH-based configurations can be set-up (e.g., installing specific packages, restricting certain actions) on demand.
+\end{itemize}
+
+\section{Pre-installed Software \& Configuration}
+
+\subsection{Core Development Suite}
+\begin{itemize}
+    \item \textbf{Browsers:} Firefox, Google Chrome
+    \item \textbf{Compilers \& Runtimes:} \texttt{gcc}, \texttt{g++}, \texttt{python2}, \texttt{python3}, \texttt{java}
+    \item \textbf{Lightweight Editors:} Sublime Text, Visual Studio Code, NeoVim, Geany
+    \item \textbf{Full IDEs:} Code::Blocks, PyCharm, Eclipse, NetBeans, IntelliJ
+\end{itemize}
+
+\subsection{Dev Tools}
+\begin{itemize}
+    \item \textbf{Git:} Installed and available.
+    \item \textbf{Conda:} A system-wide installation of Conda is present. The base environment is set to activate automatically by default in new terminal sessions.
+    \item \textbf{JupyterLab:} Can be launched from the applications menu (via a desktop launcher) or by running \texttt{jupyter lab} in the terminal.
+\end{itemize}
+
+\subsection{Databases \& GUIs}
+\begin{itemize}
+    \item \textbf{Services:} Both \texttt{postgresql} and \texttt{mysql} services are enabled and start automatically on boot.
+    \item \textbf{Access:} They are configured for \textbf{passwordless local access}. Users can connect by simply typing \texttt{psql} or \texttt{mysql} in the terminal.
+    \item \textbf{GUI Tools:} \texttt{pgAdmin} and \texttt{MySQL Workbench} are installed. No default connections are pre-configured.
+\end{itemize}
+
+\subsection{Virtualization}
+\begin{itemize}
+    \item \textbf{Docker:} The Docker service starts automatically on boot. The \texttt{cse} user can run all docker commands using \texttt{sudo}.
+    \item \textbf{Virtual-Machine Manager:} Virtual-Machine Manager (QEMU/KVM) is installed, allowing for the creation and management of virtual machines.
+\end{itemize}
+
+\subsection{Additional Software}
+\begin{itemize}
+    \item Blender
+    \item CISCO Packet Tracer (ran by the command \texttt{packettracer} on the terminal)
+    \item Draw.io
+\end{itemize}
+
+\subsection{Utilities}
+\begin{itemize}
+    \item \textbf{Gpaste (Clipboard Manager):} The Gpaste clipboard manager is installed and active. This utility logs clipboard history, which can be accessed to help assist or catch potential offenses.
+\end{itemize}
+
+\end{document}

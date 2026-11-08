@@ -1,0 +1,258 @@
+% !TEX program = lualatex
+\documentclass[12pt,a4paper]{article}
+\usepackage{fontspec}
+\setmonofont{Latin Modern Mono}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{geometry}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+
+\geometry{margin=1in}
+
+% -------------------------------
+% Header and Footer Configuration
+% -------------------------------
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Lab 1: Database Simulation via C/C++/Python}
+\rhead{CSE 4308 – DBMS Lab}
+
+% Centered footer with page number
+\cfoot{\thepage}
+% Ensure header/footer width matches text block
+\setlength{\headwidth}{\textwidth}
+
+% -------------------------------
+% Code Listing Style
+% -------------------------------
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    % numbers=left,
+    numbers = none,
+    numbersep=5pt,
+    tabsize=2,
+    frame=single,
+    columns=fullflexible,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false
+}
+
+\lstset{style=mystyle}
+
+\begin{document}
+
+% --------------------------------------------------------------
+% TITLE PAGE
+% --------------------------------------------------------------
+\begin{titlepage}
+    \centering
+    \vspace*{2\baselineskip}
+
+    \rule{14cm}{2pt}\vspace*{-0.8\baselineskip}\vspace*{1.5pt}
+    \rule{14cm}{0.5pt}\vspace{2\baselineskip}
+
+    {\Huge\bfseries\scshape Lab 1\par}
+    \vspace{3mm}
+    {\Large Database Simulation via C/C++/Python}
+    \vspace{3mm}
+
+    \rule{14cm}{0.5pt}\vspace*{-0.7\baselineskip}\vspace{2.5pt}
+    \rule{14cm}{2pt}
+
+    \vspace{2\baselineskip}
+
+    {\Large\bfseries CSE 4308\par}
+    \vspace{1\baselineskip}
+    {\large DATABASE MANAGEMENT SYSTEMS LAB\par}
+
+    \vfill
+    {\normalsize Prepared by:\\ Samnun Azfar, Jr. Lecturer, CSE\\ Samia Nawsheen, Jr. Lecturer, CSE\par}
+    {\normalsize Academic Year: AY25-26\par}
+\end{titlepage}
+
+\newpage
+
+% ==============================================================
+\section{Objective}
+The objective of this lab is to understand how basic database operations such as Create, Read, Update, and Delete (CRUD) are implemented internally. This will be achieved by simulating database functionality using a simple text file and Python.
+
+%==============================================================
+\section{Dataset Description}
+A text file named \texttt{students.txt} will be used as the data store. Each record in the file represents one student, with fields separated by a pipe (\texttt{|}) character.
+
+\begin{lstlisting}[caption=Sample Database: students.txt]
+-- Format: ID|Name|Age|Major|GPA
+1|Alice Johnson|20|Computer Science|3.8
+2|Bob Smith|22|Mathematics|3.5
+3|Carol Davis|21|Physics|3.9
+4|David Brown|23|Computer Science|3.6
+\end{lstlisting}
+
+%==============================================================
+\section{Full Python Solution}
+
+\subsection{Overview}
+The following Python program implements all CRUD operations and a simple text-based menu interface.
+
+\begin{lstlisting}[language=Python, caption=Full CRUD Implementation in Python]
+# ------------------------------------------------------------
+# Basic CRUD System using Text File (students.txt)
+# ------------------------------------------------------------
+
+FILENAME = 'students.txt'
+
+# ---------- CREATE ----------
+def insert_student(student_id, name, age, major, gpa):
+    """Insert a new student record into the file."""
+    with open(FILENAME, 'a') as file:
+        file.write(f"{student_id}|{name}|{age}|{major}|{gpa}\n")
+    print("Record inserted successfully.\n")
+
+
+# ---------- READ ----------
+def read_students():
+    """Read and display all records from the file."""
+    try:
+        with open(FILENAME, 'r') as file:
+            print("Student Records:")
+            for line in file:
+                if not line.startswith('--'):
+                    print(line.strip())
+            print()
+    except FileNotFoundError:
+        print("Database file not found.\n")
+
+
+# ---------- UPDATE ----------
+def update_student(student_id, field, new_value):
+    """Update a specific student's field."""
+    lines = []
+    found = False
+    with open(FILENAME, 'r') as file:
+        for line in file:
+            if line.startswith('--'):
+                lines.append(line)
+                continue
+            data = line.strip().split('|')
+            if data[0] == str(student_id):
+                found = True
+                mapping = {'name':1, 'age':2, 'major':3, 'gpa':4}
+                if field in mapping:
+                    data[mapping[field]] = str(new_value)
+                    print(f"Updated {field} for ID {student_id}.")
+                line = '|'.join(data) + '\n'
+            lines.append(line)
+    if not found:
+        print("Record not found.")
+    else:
+        with open(FILENAME, 'w') as file:
+            file.writelines(lines)
+        print("Record updated successfully.\n")
+
+
+# ---------- DELETE ----------
+def delete_student(student_id):
+    """Delete a student record by ID."""
+    with open(FILENAME, 'r') as file:
+        lines = file.readlines()
+
+    new_lines = [l for l in lines if not (l.split('|')[0] == str(student_id))]
+    
+    if len(new_lines) == len(lines):
+        print("Record not found.")
+    else:
+        with open(FILENAME, 'w') as file:
+            file.writelines(new_lines)
+        print("Record deleted successfully.\n")
+
+
+# ---------- MENU ----------
+def menu():
+    while True:
+        print("========== Student Database Menu ==========")
+        print("1. Insert Student")
+        print("2. View All Students")
+        print("3. Update Student")
+        print("4. Delete Student")
+        print("5. Exit")
+        choice = input("Enter your choice: ")
+
+        if choice == '1':
+            student_id = input("Enter ID: ")
+            name = input("Enter Name: ")
+            age = input("Enter Age: ")
+            major = input("Enter Major: ")
+            gpa = input("Enter GPA: ")
+            insert_student(student_id, name, age, major, gpa)
+        elif choice == '2':
+            read_students()
+        elif choice == '3':
+            student_id = input("Enter ID to update: ")
+            field = input("Field to update (name/age/major/gpa): ").lower()
+            new_value = input("Enter new value: ")
+            update_student(student_id, field, new_value)
+        elif choice == '4':
+            student_id = input("Enter ID to delete: ")
+            delete_student(student_id)
+        elif choice == '5':
+            print("Exiting program.")
+            break
+        else:
+            print("Invalid choice.\n")
+
+# Run the menu when script is executed
+if __name__ == "__main__":
+    menu()
+\end{lstlisting}
+
+%==============================================================
+\section{Sample Run}
+
+\subsection{Example Output}
+\begin{lstlisting}[caption=Program Output Example]
+========== Student Database Menu ==========
+1. Insert Student
+2. View All Students
+3. Update Student
+4. Delete Student
+5. Exit
+Enter your choice: 1
+Enter ID: 5
+Enter Name: Eve Wilson
+Enter Age: 20
+Enter Major: Data Science
+Enter GPA: 3.9
+Record inserted successfully.
+
+Enter your choice: 2
+Student Records:
+1|Alice Johnson|20|Computer Science|3.8
+2|Bob Smith|22|Mathematics|3.5
+3|Carol Davis|21|Physics|3.9
+4|David Brown|23|Computer Science|3.6
+5|Eve Wilson|20|Data Science|3.9
+\end{lstlisting}
+\section{Submission Guidelines}
+\begin{itemize}
+    \item Create the following structure for each task: Documents->CSE 4308 YYY -> 23004XXXX -> 23004XXXX\_CSE 4308\_LX\_TX.sql (use appropriate file type for your code)
+    \item Here YYY -> SWE or CSE, depending on your program
+    \item Replace XXXX with your id
+    \item LX means Lab 1, Lab 2, ... etc and TX means Task 1, Task 2, ... etc of the same lab
+    \item Submit only the code files that you wrote, with appropriate file name
+\end{itemize}
+\end{document}

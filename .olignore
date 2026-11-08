@@ -1,0 +1,15 @@
+build/*
+*/pdf/*
+*/*/pdf/*
+.olignore
+.olauth
+compile_labs.sh
+sync_overleaf.sh
+*.aux
+*.log
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.out
+*.toc
+.olsync-state.json

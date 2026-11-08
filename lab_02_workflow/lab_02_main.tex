@@ -1,0 +1,414 @@
+% !TEX program = lualatex
+\documentclass[12pt,a4paper]{article}
+\usepackage{fontspec}
+\setmonofont{Latin Modern Mono}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{geometry}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+
+\geometry{margin=1in}
+
+% -------------------------------
+% Header and Footer
+% -------------------------------
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Lab 2: Workflow with PostgreSQL}
+\rhead{CSE 4308: DBMS Lab}
+\cfoot{\thepage}
+\setlength{\headwidth}{\textwidth}
+
+% -------------------------------
+% Code Listing Style
+% -------------------------------
+% Define colors for SQL syntax highlighting
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+% Setup for the listings package to handle SQL
+\lstdefinestyle{mystyle}{
+    columns=fullflexible,
+	backgroundcolor=\color{backcolour},   
+	commentstyle=\color{codegreen},
+	keywordstyle=\color{magenta},
+	numberstyle=\tiny\color{codegray},
+	stringstyle=\color{codepurple},
+	basicstyle=\ttfamily\footnotesize,
+	breakatwhitespace=false,         
+	breaklines=true,                 
+	captionpos=b,                    
+	keepspaces=true,                 
+	numbers=left,                    
+	numbersep=5pt,                  
+	showspaces=false,                
+	showstringspaces=false,
+	showtabs=false,                  
+	tabsize=2,
+    numbers=none
+}
+
+\lstset{style=mystyle}
+
+\begin{document}
+
+% --------------------------------------------------------------
+% TITLE PAGE
+% --------------------------------------------------------------
+\begin{titlepage}
+    \centering
+    \vspace*{2\baselineskip}
+
+    \rule{14cm}{2pt}\vspace*{-0.8\baselineskip}\vspace*{1.5pt}
+    \rule{14cm}{0.5pt}\vspace{2\baselineskip}
+
+    {\Huge\bfseries\scshape Lab 2\par}
+    \vspace{3mm}
+    {\Large Workflow with PostgreSQL}
+
+    \rule{14cm}{0.5pt}\vspace*{-0.7\baselineskip}\vspace{2.5pt}
+    \rule{14cm}{2pt}
+
+    \vspace{2\baselineskip}
+
+    {\Large\bfseries CSE 4308\par}
+    \vspace{1\baselineskip}
+    {\large DATABASE MANAGEMENT SYSTEMS LAB}
+
+    \vfill
+    {\normalsize Prepared by:\\ Samnun Azfar, Jr. Lecturer, CSE\\ Samia Nawsheen, Jr. Lecturer, CSE\par}
+    {\normalsize Academic Year: AY25-26\par}
+\end{titlepage}
+
+\newpage
+
+% ==============================================================
+\section*{Objective}
+Learn to configure PostgreSQL for password authentication, create a PostgreSQL role, assign a password, create a dedicated database, load SQL files, and perform CRUD operations inside the student's own database.
+
+% ==============================================================
+\section*{Lab Workflow}
+
+
+% --------------------------------------------------------------
+
+\textit{Repeat this subsection for every single lab. If anything in this section fails in IUT lab PCs, check the commands given at the end of the lab manual after notes.}
+
+\begin{enumerate}
+\item Connect to the internet by running nmtui in terminal, add a dsl connection, then go back and activate that dsl connection. Make sure that your net id is not being used in any other pc or router, if you face any issue, use any other net id from your friends which is not being used.
+
+\item Download all the files posted in the google classroom.
+
+\item Disconnect from the \textbf{dsl} connection via nmtui, connect to the ethernet/wired connection via nmtui. If no such connection exists, create an \textbf{ethernet} connection  and then activate.
+
+    \item \textbf{Create Your Role and Database}
+
+Inside the PostgreSQL shell, create your own role (user) and database.
+
+1. In the Linux terminal:
+\begin{lstlisting}[language=bash]
+psql
+\end{lstlisting}
+
+Expected prompt:
+\begin{lstlisting}
+cse=#
+\end{lstlisting}
+
+2. Create Your Role and Database
+
+Copy and run the following commands inside PostgreSQL:
+\begin{lstlisting}[language=SQL]
+-- 1. Terminate existing database connections
+SELECT pg_terminate_backend(pid)
+FROM pg_stat_activity
+WHERE datname = 'cse4308_12345'
+  AND pid <> pg_backend_pid();
+
+-- 2. Remove existing database
+DROP DATABASE IF EXISTS cse4308_12345;
+
+-- 3. Remove existing role
+DROP ROLE IF EXISTS student_12345;
+
+-- 4. Create role
+CREATE ROLE student_12345 LOGIN;
+
+-- 5. Set password
+ALTER ROLE student_12345
+WITH PASSWORD 'student12345';
+
+-- 6. Create database
+CREATE DATABASE cse4308_12345
+OWNER student_12345;
+
+-- 7. Grant privileges
+GRANT ALL PRIVILEGES
+ON DATABASE cse4308_12345
+TO student_12345;
+\end{lstlisting}
+
+
+3. Exit PostgreSQL:
+
+   \begin{lstlisting}[language=SQL]
+   \q
+   \end{lstlisting}
+
+\item \textbf{Connect Using Your Newly Created User}
+
+1. Connect to Your Database:
+
+   Use the following command to log in as the \texttt{student\_12345} user:
+
+   \begin{lstlisting}[language=SQL]
+   psql -h localhost -U student_12345 -d cse4308_12345
+   \end{lstlisting}
+
+2. Verify the Connection:
+
+   Verify that you are connected to the correct database with the following command:
+
+   \begin{lstlisting}[language=SQL]
+   \conninfo
+   \end{lstlisting}
+
+   Expected output:
+
+   \begin{lstlisting}
+   Database: cse4308_12345, User: student_12345
+   \end{lstlisting}
+
+3. Exit PostgreSQL:
+
+   \begin{lstlisting}[language=SQL]
+   \q
+   \end{lstlisting}
+
+
+\item \textbf{Load the Lab SQL File (MUST be run outside psql)}
+
+Load the SQL file that sets up the tables and inserts initial data.
+
+1. Load the SQL File:
+
+   Run the following command to load the lab SQL file:
+
+   \begin{lstlisting}[language=SQL]
+   psql -h localhost -U student_12345 -d cse4308_12345 -f /home/cse/Downloads/lab_02_setup.sql
+   \end{lstlisting}
+
+   This will:
+   - Drop old tables (if they exist).
+   - Create new tables.
+   - Insert initial rows of data.
+
+\item \textbf{Reconnect and Verify Tables}
+
+After loading the SQL file, reconnect to PostgreSQL to verify that the tables have been created.
+
+1. Reconnect to Your Database:
+
+   \begin{lstlisting}[language=SQL]
+   psql -h localhost -U student_12345 -d cse4308_12345
+   \end{lstlisting}
+
+2. Check Tables:
+
+   Verify the tables have been created by listing them:
+
+   \begin{lstlisting}[language=SQL]
+   \dt
+   \end{lstlisting}
+
+3. View Table Data:
+
+   Verify the data by running the following SQL queries:
+
+   \begin{lstlisting}[language=SQL]
+   SELECT * FROM students;
+   SELECT * FROM courses;
+   \end{lstlisting}
+
+\item Open a text editor and save it in the appropriate submission name format \\ \texttt{fullid\_CSE4308\_L2\_T1.sql}. You will use this text editor to write your solutions, make sure to save it after writing each solution. The structure of this file will be:
+\begin{lstlisting}[language=SQL]
+-- Task 1
+INSERT INTO students (student_id, name, major, gpa)
+VALUES (104, 'David', 'ME', 3.60);
+--Task 2
+SELECT name, gpa FROM students WHERE major = 'CSE';
+\end{lstlisting}
+\end{enumerate}
+\newpage
+\section*{Tasks}
+Perform the basic CRUD operations (Create, Read, Update, Delete) on the tables.
+
+\begin{enumerate}
+
+\item CREATE:
+
+   \begin{lstlisting}[language=SQL]
+   INSERT INTO students (student_id, name, major, gpa)
+   VALUES (104, 'David', 'ME', 3.60);
+
+   INSERT INTO courses (course_id, course_name, credits)
+   VALUES (4, 'Machine Learning', 3);
+   \end{lstlisting}
+
+\item READ:
+
+   \begin{lstlisting}[language=SQL]
+   SELECT * FROM students;
+   SELECT * FROM courses;
+
+   SELECT name, gpa FROM students WHERE major = 'CSE';
+   SELECT course_name FROM courses WHERE credits = 3;
+   SELECT * FROM students ORDER BY gpa DESC;
+   \end{lstlisting}
+
+\item UPDATE:
+
+   \begin{lstlisting}[language=SQL]
+   UPDATE students
+   SET gpa = 3.55
+   WHERE name = 'Bob';
+
+   UPDATE courses
+   SET credits = 4
+   WHERE course_name = 'Operating Systems';
+   \end{lstlisting}
+
+\item DELETE:
+
+   \begin{lstlisting}[language=SQL]
+   DELETE FROM students WHERE name = 'Charlie';
+   DELETE FROM courses WHERE course_name = 'Digital Electronics';
+   \end{lstlisting}
+
+\item Verify:
+
+   \begin{lstlisting}[language=SQL]
+   SELECT * FROM students;
+   SELECT * FROM courses;
+   \end{lstlisting}
+
+
+
+\item Exit psql
+
+Once you've completed all operations, exit the PostgreSQL shell:
+
+\begin{lstlisting}[language=SQL]
+\q
+\end{lstlisting}
+
+\item Submit Work
+
+Save all successfully executed commands into a \texttt{.sql} file using a text editor.
+
+1. Save Your Work:
+
+   Name the file as: \texttt{fullid\_CSE4308\_L2\_T1.sql}
+
+2. Organize Your Files:
+
+   Save your files in the following structure:
+
+   \begin{lstlisting}[language=SQL]
+   ~/Documents/CSE4308_Labs/
+                           Lab2/
+                               lab_02_setup.sql
+                               12345_CSE4308_L2_T1.sql
+   \end{lstlisting}
+
+\end{enumerate}
+
+% ==============================================================
+\section*{Notes}
+\begin{itemize}
+\item All work must be performed inside \textbf{your} database and \textbf{your} user.
+\item Always run SQL file loading using \texttt{psql -U <user> -d <database> -f ...}.
+\item Save only commands that executed successfully. Logging in and running lab\_02\_setup.sql file is not required.
+\end{itemize}
+\newpage
+\subsection*{Configure PostgreSQL to Use MD5 Authentication}
+Try only if you faced error while \texttt{"Create Your Role and Database"} or \texttt{"Connect Using Your Newly Created User"}\\\\
+\textbf{You only need to do this once} in a PC in any lab. Once done, \textbf{do not perform these again}. Note: your lab might have already been configured with the following by a previous user.\\
+
+
+\noindent Before you start creating users and databases, we need to modify the PostgreSQL authentication method to allow password-based authentication.
+\begin{enumerate}
+    \item Open the \texttt{pg\_hba.conf} File:
+
+   Use a text editor to open the \texttt{pg\_hba.conf} file:
+
+   \begin{lstlisting}[language=SQL]
+   sudo nano /etc/postgresql/18/main/pg_hba.conf
+   \end{lstlisting}
+
+   % The file might be located in different directories based on your PostgreSQL version. To find it, use the following command:
+
+   % \begin{lstlisting}[language=SQL]
+   % sudo find / -name pg_hba.conf
+   % \end{lstlisting}
+
+\item Modify Authentication Method to \texttt{md5}:
+
+   Locate the following line:
+
+   \begin{lstlisting}[language=SQL]
+   local   all             all                           peer
+   \end{lstlisting}
+
+   Change \texttt{peer} to \texttt{md5}:
+
+   \begin{lstlisting}[language=SQL]
+   local   all             all                           md5
+   \end{lstlisting}
+
+\item Save and Exit:
+
+   Press \texttt{CTRL + O} to save and \texttt{CTRL + X} to exit the editor.
+
+\item Restart PostgreSQL:
+
+   To apply the changes, restart the PostgreSQL service:
+
+   \begin{lstlisting}[language=SQL]
+   sudo systemctl restart postgresql
+   \end{lstlisting}
+
+\textbf{Set Password for \texttt{cse} User}
+
+Now, you need to set or reset the password for the \texttt{cse} user. 
+
+\item Login to PostgreSQL as \texttt{postgres}:
+
+   If you are not logged in as \texttt{postgres}, log in as the superuser:
+
+   \begin{lstlisting}[language=SQL]
+   sudo -u postgres psql
+   \end{lstlisting}
+
+\item Set Password for \texttt{cse}:
+
+   To set the password for the \texttt{cse} user, run the following command inside PostgreSQL:
+
+   \begin{lstlisting}[language=SQL]
+   ALTER ROLE cse WITH PASSWORD '123';
+   \end{lstlisting}
+
+\item Exit PostgreSQL:
+
+   After setting the password, exit the PostgreSQL shell:
+
+   \begin{lstlisting}[language=SQL]
+   \q
+   \end{lstlisting}
+   
+\end{enumerate}
+
+\end{document}

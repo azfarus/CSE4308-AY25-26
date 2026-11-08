@@ -1,0 +1,453 @@
+% !TEX program = lualatex
+\documentclass[12pt,a4paper]{article}
+\usepackage{fontspec}
+\setmonofont{Latin Modern Mono}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{geometry}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\geometry{margin=1in}
+\usepackage{multicol}
+
+% -------------------------------
+% Header and Footer Configuration
+% -------------------------------
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Lab 3: Introduction to DDL and DML Operations}
+\rhead{CSE 4308: DBMS Lab}
+
+% Centered footer with page number
+\cfoot{\thepage}
+% Ensure header/footer width matches text block
+\setlength{\headwidth}{\textwidth}
+
+% -------------------------------
+% Code Listing Style
+% -------------------------------
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=none,
+    numbersep=5pt,
+    tabsize=2,
+    frame=single,
+    columns=fullflexible,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false
+}
+
+\lstset{style=mystyle}
+
+% Images: found next to this file (local compile_labs.sh) or via the
+% lab folder when compiled from the project root (Overleaf).
+\graphicspath{{lab_03_ddl_dml/}{../}}
+
+\begin{document}
+
+% --------------------------------------------------------------
+% TITLE PAGE
+% --------------------------------------------------------------
+\begin{titlepage}
+    \centering
+    \vspace*{2\baselineskip}
+
+    \rule{14cm}{2pt}\vspace*{-0.8\baselineskip}\vspace*{1.5pt}
+    \rule{14cm}{0.5pt}\vspace{2\baselineskip}
+
+    {\Huge\bfseries\scshape Lab 3\par}
+    \vspace{3mm}
+    {\Large Introduction to DDL and DML Operations\par}
+    \vspace{2mm}
+    {\large Group 2A\par}
+    \vspace{3mm}
+
+    \rule{14cm}{0.5pt}\vspace*{-0.7\baselineskip}\vspace{2.5pt}
+    \rule{14cm}{2pt}
+
+    \vspace{2\baselineskip}
+
+    {\Large\bfseries CSE 4308\par}
+    \vspace{1\baselineskip}
+    {\large DATABASE MANAGEMENT SYSTEMS LAB\par}
+
+    \vfill
+    {\normalsize Prepared by:\\ Samnun Azfar, Jr. Lecturer, CSE\\ Samia Nawsheen, Jr. Lecturer, CSE\par}
+    {\normalsize Academic Year: AY25-26\par}
+\end{titlepage}
+
+\newpage
+
+% ==============================================================
+\section{Table Management (DDL)}
+
+\subsection{Creating a Table}
+Creating a table defines the structure of your data. You must define columns, data types, and constraints.
+
+\textbf{General Syntax:}
+\begin{lstlisting}
+CREATE TABLE table_name
+(
+    attribute1 datatype [ NULL | NOT NULL | UNIQUE ],
+    attribute2 datatype [ NULL | NOT NULL | UNIQUE ],
+    ...
+);
+\end{lstlisting}
+
+\subsubsection{Common PostgreSQL Data Types}
+\begin{itemize}
+    \item \texttt{INT}: Standard whole numbers. \textit{Warning: Removes leading zeros (001 becomes 1).}
+    \item \texttt{VARCHAR(n)}: Variable-length string. \textbf{Use this for IDs with leading zeros} (e.g., Zip Codes, Student IDs like \texttt{'00128'}).
+    \item \texttt{CHAR(n)}: Fixed-length string. Pads with spaces if input is short.
+    \item \texttt{SERIAL}: Auto-incrementing integer (1, 2, 3...). Perfect for internal IDs.
+    \item \texttt{NUMERIC(p,s)}: Exact decimals (e.g., Currency).
+    \item \texttt{DATE}: Calendar dates.
+\end{itemize}
+
+\subsubsection{Example: Constraints}
+Constraints protect data quality.
+\begin{lstlisting}
+CREATE TABLE PRODUCT
+(
+    PID SERIAL PRIMARY KEY,         -- Unique, Auto-increment
+    PNAME VARCHAR(50) NOT NULL,     -- Cannot be empty
+    PRICE INT,
+    CONSTRAINT PRICE_CHECK CHECK (PRICE >= 0) -- No negative prices
+);
+\end{lstlisting}
+
+\subsection{Dropping Tables}
+\begin{lstlisting}
+DROP TABLE table_name;
+\end{lstlisting}
+
+\textbf{The Cascade Option:}
+If other objects depend on this table, use \texttt{CASCADE} to force deletion.
+\begin{lstlisting}
+DROP TABLE PRODUCT CASCADE;
+\end{lstlisting}
+
+\subsection{Altering Tables}
+Modify structure without deleting data.
+
+\begin{lstlisting}
+-- 1. Add a new column
+ALTER TABLE PRODUCT ADD COLUMN STOCK INT;
+
+-- 2. Remove a column
+ALTER TABLE PRODUCT DROP COLUMN STOCK;
+
+-- 3. Change data type
+ALTER TABLE PRODUCT ALTER COLUMN PRICE TYPE NUMERIC(10,2);
+
+-- 4. Rename column
+ALTER TABLE PRODUCT RENAME COLUMN PNAME TO PRODUCT_NAME;
+\end{lstlisting}
+
+\section{Data Manipulation (DML)}
+
+\subsection{Inserting Records}
+\textbf{Named Notation (Recommended):}
+Specifying columns is safer than relying on column order.
+\begin{lstlisting}
+INSERT INTO PRODUCT(PID, PNAME, PRICE) VALUES (DEFAULT, 'Pen', 15);
+\end{lstlisting}
+
+\subsection{Updating Data}
+\textbf{Warning:} Always use a \texttt{WHERE} clause, otherwise all rows are updated.
+\begin{lstlisting}
+UPDATE PRODUCT
+SET PRICE = 250
+WHERE PID = 1;
+\end{lstlisting}
+
+\subsection{Deleting Data}
+\textbf{Warning:} Without a \texttt{WHERE} clause, the table becomes empty.
+\begin{lstlisting}
+DELETE FROM PRODUCT
+WHERE PRICE = 0;
+\end{lstlisting}
+
+\subsection{Retrieval (SELECT) and Filtering}
+The core of SQL is querying data.
+
+\textbf{Basic Filtering:}
+\begin{lstlisting}
+SELECT * FROM PRODUCT WHERE PRICE > 50;
+\end{lstlisting}
+
+\subsubsection{Logical Operators (AND, OR)}
+To answer complex questions, we combine conditions.
+
+\textbf{1. AND Operator:}
+Both conditions must be true.
+\begin{lstlisting}
+-- Find products that are expensive AND in a specific category
+SELECT * FROM PRODUCT 
+WHERE PRICE > 100 AND CATEGORY = 'Electronics';
+\end{lstlisting}
+
+\textbf{2. OR Operator:}
+At least one condition must be true.
+\begin{lstlisting}
+-- Find products that are either Blue OR Red
+SELECT * FROM PRODUCT 
+WHERE COLOR = 'Blue' OR COLOR = 'Red';
+\end{lstlisting}
+
+\subsection{Working with Dates (\texttt{DATE})}
+The \texttt{DATE} type stores a calendar date. Write a date as a string in the format \texttt{'YYYY-MM-DD'}; PostgreSQL converts it to a \texttt{DATE} automatically.
+
+\begin{lstlisting}
+CREATE TABLE ORDERS
+(
+    OID INT PRIMARY KEY,
+    ORDER_DATE DATE NOT NULL,
+    AMOUNT INT
+);
+
+INSERT INTO ORDERS (OID, ORDER_DATE, AMOUNT) VALUES
+(1, '2026-03-15', 500),
+(2, '2026-01-07', 1200),
+(3, '2026-02-20', 800);
+\end{lstlisting}
+
+Dates can be compared just like numbers. An earlier date is ``smaller'':
+\begin{lstlisting}
+-- Orders placed after 1 February 2026
+SELECT * FROM ORDERS WHERE ORDER_DATE > '2026-02-01';
+
+-- Orders placed in February 2026
+SELECT * FROM ORDERS
+WHERE ORDER_DATE >= '2026-02-01' AND ORDER_DATE < '2026-03-01';
+
+-- Today's date
+SELECT CURRENT_DATE;
+\end{lstlisting}
+
+\subsection{Sorting Results (\texttt{ORDER BY})}
+Rows come back in no guaranteed order. Use \texttt{ORDER BY} to sort them. \texttt{ASC} (ascending, the default) puts the smallest value first; \texttt{DESC} (descending) puts the largest first. For dates, ascending means oldest first.
+\begin{lstlisting}
+-- Oldest order first
+SELECT * FROM ORDERS ORDER BY ORDER_DATE ASC;
+
+-- Newest order first
+SELECT * FROM ORDERS ORDER BY ORDER_DATE DESC;
+
+-- Filter first, then sort: big orders, largest amount first
+SELECT * FROM ORDERS
+WHERE AMOUNT > 600
+ORDER BY AMOUNT DESC;
+\end{lstlisting}
+\texttt{ORDER BY} always comes after \texttt{WHERE}.
+
+\newpage
+\section*{Lab Workflow}
+
+\textit{Repeat this subsection for every single lab.}
+
+\begin{enumerate}
+\item Connect to the internet by running nmtui in terminal, add a dsl connection, then go back and activate that dsl connection. Make sure that your net id is not being used in any other pc or router, if you face any issue, use any other net id from your friends which is not being used.
+
+\item Download all the files posted in the google classroom.
+
+\item Disconnect from the \textbf{dsl} connection via nmtui, connect to the ethernet/wired connection via nmtui. If no such connection exists, create an \textbf{ethernet} connection  and then activate.
+
+    \item \textbf{Create Your Role and Database}
+
+Inside the PostgreSQL shell, create your own role (user) and database.
+
+1. In the Linux terminal:
+\begin{lstlisting}[language=bash]
+psql
+\end{lstlisting}
+
+Expected prompt:
+\begin{lstlisting}
+cse=#
+\end{lstlisting}
+
+2. Create Your Role and Database
+
+Copy and run the following commands inside PostgreSQL:
+\begin{lstlisting}[language=SQL]
+-- 1. Terminate existing database connections
+SELECT pg_terminate_backend(pid)
+FROM pg_stat_activity
+WHERE datname = 'cse4308_12345'
+  AND pid <> pg_backend_pid();
+
+-- 2. Remove existing database
+DROP DATABASE IF EXISTS cse4308_12345;
+
+-- 3. Remove existing role
+DROP ROLE IF EXISTS student_12345;
+
+-- 4. Create role
+CREATE ROLE student_12345 LOGIN;
+
+-- 5. Set password
+ALTER ROLE student_12345
+WITH PASSWORD 'student12345';
+
+-- 6. Create database
+CREATE DATABASE cse4308_12345
+OWNER student_12345;
+
+-- 7. Grant privileges
+GRANT ALL PRIVILEGES
+ON DATABASE cse4308_12345
+TO student_12345;
+\end{lstlisting}
+
+3. Exit PostgreSQL:
+
+   \begin{lstlisting}[language=SQL]
+   \q
+   \end{lstlisting}
+
+\item \textbf{Connect Using Your Newly Created User}
+
+1. Connect to Your Database:
+
+   Use the following command to log in as the \texttt{student\_12345} user:
+
+   \begin{lstlisting}[language=SQL]
+   psql -h localhost -U student_12345 -d cse4308_12345
+   \end{lstlisting}
+
+2. Verify the Connection:
+
+   Verify that you are connected to the correct database with the following command:
+
+   \begin{lstlisting}[language=SQL]
+   \conninfo
+   \end{lstlisting}
+
+   Expected output:
+
+   \begin{lstlisting}
+   You are connected to database "cse4308_12345" as user "student_12345".
+   \end{lstlisting}
+
+3. Exit PostgreSQL:
+
+   \begin{lstlisting}[language=SQL]
+   \q
+   \end{lstlisting}
+
+\item \textbf{Load the Lab SQL File (MUST be run outside psql)}
+
+Load the SQL file that sets up the tables and inserts initial data.
+
+1. Load the SQL File:
+
+   Run the following command to load the lab SQL file:
+
+   \begin{lstlisting}[language=SQL]
+   psql -h localhost -U student_12345 -d cse4308_12345 -f /home/cse/Downloads/lab_03_2a_setup.sql
+   \end{lstlisting}
+
+   This will:
+   - Drop old tables (if they exist).
+   - Create new tables.
+   - Insert initial rows of data.
+
+\item \textbf{Reconnect and Verify Tables}
+
+After loading the SQL file, reconnect to PostgreSQL to verify that the tables have been created.
+
+1. Reconnect to Your Database:
+
+   \begin{lstlisting}[language=SQL]
+   psql -h localhost -U student_12345 -d cse4308_12345
+   \end{lstlisting}
+
+2. Check Tables:
+
+   Verify the tables have been created by listing them:
+
+   \begin{lstlisting}[language=SQL]
+   \dt
+   \end{lstlisting}
+
+3. View Table Data:
+
+   Verify the data by running the following SQL queries:
+
+   \begin{lstlisting}[language=SQL]
+   SELECT * FROM <table_name>;
+   \end{lstlisting}
+
+\item Open a text editor and save it in the appropriate submission name format \\ \texttt{fullid\_CSE4308\_L3\_T1.sql}. You will use this text editor to write your solutions, make sure to save it after writing each solution. The structure of this file will be:
+\begin{lstlisting}[language=SQL]
+-- Task 1
+INSERT INTO students (student_id, name, major, gpa)
+VALUES (104, 'David', 'ME', 3.60);
+--Task 2
+SELECT name, gpa FROM students WHERE major = 'CSE';
+\end{lstlisting}
+\end{enumerate}
+\newpage
+\section{Lab Task}
+The \texttt{GPU\_SALE} table:
+\begin{itemize}
+        \item \texttt{TXN\_ID} (INT, Transaction ID, Primary Key)
+        \item \texttt{SALE\_DATE} (DATE, Must not be NULL)
+        \item \texttt{PRICE} (INT, Sold price in USD)
+        \item \texttt{MODEL} (VARCHAR(50))
+\end{itemize}
+
+    \begin{table}[h!]\centering
+    \begin{tabular}{|c|l|c|l|}
+        \hline
+        \textbf{TXN\_ID} & \textbf{SALE\_DATE} & \textbf{PRICE} & \textbf{MODEL} \\ \hline
+        1001 & 2026-01-14 & 1850 & RTX 4090 \\
+        1002 & 2026-01-20 & 999 & RTX 4080 \\
+        1003 & 2026-02-03 & 920 & RX 7900 XTX \\
+        1004 & 2025-12-28 & 1720 & RTX 4090 \\
+        1005 & 2026-02-11 & 0 & RTX 4080 \\
+        1006 & 2026-03-05 & 549 & RTX 4070 \\
+        1007 & 2026-01-02 & 1990 & RTX 4090 \\
+        1008 & 2026-02-25 & 879 & RX 7900 XTX \\
+        1009 & 2026-03-18 & 1800 & RTX 4090 \\
+        1010 & 2026-03-01 & 0 & RX 7900 XTX \\
+        1011 & 2025-11-30 & 1060 & RTX 4080 \\
+        1012 & 2026-02-14 & 2100 & RTX 4090 \\
+        1013 & 2026-03-22 & 529 & RTX 4070 \\ \hline
+    \end{tabular}
+    \end{table}
+
+\noindent Create the \texttt{GPU\_SALE} table, then insert the data as shown in the \texttt{GPU\_SALE} table by running \texttt{lab\_03\_2a\_setup.sql}. Then perform the following queries on the \texttt{GPU\_SALE} table:
+\begin{enumerate}
+    \item Display all records of the \texttt{GPU\_SALE} table.
+    % SELECT * FROM GPU_SALE;
+    \item Find the transaction IDs and sale dates of RTX 4090 cards that sold for more than 1,800.
+    % SELECT TXN_ID, SALE_DATE FROM GPU_SALE WHERE MODEL = 'RTX 4090' AND PRICE > 1800;
+    \item Find the transactions of either the RTX 4080 or the RX 7900 XTX.
+    % SELECT * FROM GPU_SALE WHERE MODEL = 'RTX 4080' OR MODEL = 'RX 7900 XTX';
+    \item Show all transactions of the RTX 4090, sorted by sale date from oldest to newest.
+    % SELECT * FROM GPU_SALE WHERE MODEL = 'RTX 4090' ORDER BY SALE_DATE ASC;
+    \item Delete cancelled transactions (\texttt{PRICE = 0}).
+    % DELETE FROM GPU_SALE WHERE PRICE = 0;
+    \item Drop the \texttt{GPU\_SALE} table.
+    % DROP TABLE GPU_SALE;
+
+\end{enumerate}
+
+\end{document}

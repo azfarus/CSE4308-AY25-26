@@ -1,0 +1,760 @@
+% !TEX program = lualatex
+\documentclass[12pt,a4paper]{article}
+\usepackage[normalem]{ulem} % for \dashuline (partial keys)
+\usepackage{graphicx}
+\usepackage{fontspec}
+\setmonofont{Latin Modern Mono}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{geometry}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows, positioning, fit, calc}
+
+% =======================================================
+%  TIKZ ER DIAGRAM STYLES
+% =======================================================
+\tikzset{
+    entity/.style={
+        draw, 
+        rectangle, 
+        minimum width=2.5cm, 
+        minimum height=1cm, 
+        align=center, 
+        thick
+    },
+    weak entity/.style={
+        draw, 
+        rectangle, 
+        double, 
+        double distance=2pt, 
+        minimum width=2.5cm, 
+        minimum height=1cm, 
+        align=center, 
+        thick
+    },
+    relationship/.style={
+        draw, 
+        diamond, 
+        aspect=2, 
+        minimum width=2.5cm, 
+        minimum height=1cm, 
+        align=center, 
+        thick
+    },
+    weak relationship/.style={
+        draw, 
+        diamond, 
+        aspect=2, 
+        double, 
+        double distance=2pt, 
+        minimum width=2.5cm, 
+        minimum height=1cm, 
+        align=center, 
+        thick
+    },
+    attribute/.style={
+        draw, 
+        ellipse, 
+        minimum width=2cm, 
+        minimum height=0.8cm, 
+        align=center
+    },
+    key attribute/.style={
+        draw, 
+        ellipse, 
+        minimum width=2cm, 
+        minimum height=0.8cm, 
+        align=center,
+        font=\bfseries
+        % Note: Manual underlining in text usually preferred in TikZ labels
+    },
+    multivalued attribute/.style={
+        draw, 
+        ellipse, 
+        double, 
+        double distance=1.5pt, 
+        minimum width=2cm, 
+        minimum height=0.8cm, 
+        align=center
+    },
+    derived attribute/.style={
+        draw, 
+        ellipse, 
+        dashed, 
+        minimum width=2cm, 
+        minimum height=0.8cm, 
+        align=center
+    },
+    line/.style={
+        draw, 
+        thick, 
+        -
+    },
+    arrow/.style={
+        draw, 
+        thick, 
+        ->, 
+        >=stealth
+    }
+}
+
+% =======================================================
+%  USER CONFIGURATION
+% =======================================================
+\newcommand{\labNo}{Lab 7}
+\newcommand{\labTopic}{Database Design using Entity-Relationship Diagrams (ERD)}
+\newcommand{\courseCode}{CSE 4308}
+\newcommand{\courseTitleShort}{DBMS Lab}
+\newcommand{\courseTitleLong}{DATABASE MANAGEMENT SYSTEMS LAB}
+\newcommand{\instructorName}{Samnun Azfar, Jr. Lecturer, CSE\\ Samia Nawsheen, Jr. Lecturer, CSE}
+\newcommand{\academicYear}{AY25-26}
+% =======================================================
+
+\geometry{margin=1in}
+
+% -
+% Header and Footer Configuration
+% -
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\labNo}
+\rhead{\courseCode: \courseTitleShort}
+
+\cfoot{\thepage}
+\setlength{\headwidth}{\textwidth}
+
+% -
+% Code Listing Style
+% -
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    tabsize=2,
+    frame=single,
+    numbers=none,
+    columns=fullflexible,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    language=SQL
+}
+
+\lstset{style=mystyle}
+
+\begin{document}
+
+% --
+% TITLE PAGE
+% --
+\begin{titlepage}
+    \centering
+    \vspace*{2\baselineskip}
+
+    \rule{14cm}{2pt}\vspace*{-0.8\baselineskip}\vspace*{1.5pt}
+    \rule{14cm}{0.5pt}\vspace{2\baselineskip}
+
+    {\Huge\bfseries\scshape \labNo\par}
+    \vspace{3mm}
+    {\Large \labTopic}
+    \vspace{3mm}
+
+    \rule{14cm}{0.5pt}\vspace*{-0.7\baselineskip}\vspace{2.5pt}
+    \rule{14cm}{2pt}
+
+    \vspace{2\baselineskip}
+
+    {\Large\bfseries \courseCode\par}
+    \vspace{1\baselineskip}
+    {\large \courseTitleLong\par}
+
+    \vfill
+    {\normalsize Prepared by:\\ \instructorName\par}
+    {\normalsize Academic Year: \academicYear\par}
+\end{titlepage}
+
+\newpage
+\tableofcontents
+\newpage
+
+\section{Introduction to Database Design}
+
+The database design process is a structured approach used to transform real-world data requirements into a physical database implementation. It is crucial to ensure the final system is efficient, consistent, and capable of supporting user needs.
+
+\subsection{Design Phases}
+The design process is typically divided into three major phases:
+
+\begin{enumerate}
+    \item \textbf{Initial Phase (Requirement Analysis):}
+    This phase involves characterizing the data needs of prospective database users. The designer interacts with domain experts to generate a specification of user requirements. For instance, in a university context, this might involve identifying that the system needs to store data about students, instructors, and the courses they take.
+
+    \item \textbf{Conceptual-Design Phase:}
+    Here, the designer translates the requirements into a conceptual schema. The \textbf{Entity-Relationship (ER) model} is the standard tool used for this purpose. The result is an ER Diagram (ERD), which is an abstract representation of the data, independent of the specific database software (like MySQL or Oracle) that will eventually be used.
+
+    \item \textbf{Implementation Phase:}
+    This phase moves from the abstract to the concrete:
+    \begin{itemize}
+        \item \textbf{Logical Design:} Maps the conceptual ER schema onto the implementation data model (usually the Relational Model, consisting of tables and constraints).
+        \item \textbf{Physical Design:} Handles storage details, such as file organization and indexing, to optimize performance.
+    \end{itemize}
+\end{enumerate}
+
+\subsection{Common Design Pitfalls}
+A robust design must avoid two specific errors:
+\begin{itemize}
+    \item \textbf{Redundancy:} This occurs when the same piece of information is stored in multiple places. It is dangerous because updating the data in one location without updating it in others leads to \textit{data inconsistency}.
+    \item \textbf{Incompleteness:} A design is incomplete if it fails to model necessary aspects of the enterprise or introduces bad business logic, making it impossible to store required information.
+\end{itemize}
+
+\newpage
+\section{The Entity-Relationship (ER) Model}
+
+The ER model represents data as a collection of entities and relationships.
+
+\subsection{Entity Sets}
+An \textbf{entity} is a distinct object in the real world that is distinguishable from all other objects. Examples include a specific person (``Einstein''), a company, or a course.
+
+An \textbf{entity set} is a collection of entities of the same type that share the same properties (e.g., the set of all students).
+
+\textbf{Visual Representation:}
+\begin{itemize}
+    \item \textbf{Rectangles} represent entity sets.
+    \item The name of the entity set is placed at the top or center.
+    \item \textbf{Attributes} are listed inside the rectangle.
+    \item The \textbf{Primary Key} (the attribute that uniquely identifies an entity) is \underline{underlined}.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[node distance=2cm]
+        % Entity
+        \node[entity] (student) {Student};
+
+        % Attributes
+        \node[key attribute] (id) [above left of=student] {\underline{ID}};
+        \node[attribute] (name) [above of=student] {Name};
+        \node[attribute] (tot_cred) [above right of=student] {Tot\_cred};
+
+        % Connections
+        \draw[line] (student) -- (id);
+        \draw[line] (student) -- (name);
+        \draw[line] (student) -- (tot_cred);
+    \end{tikzpicture}
+    \caption{Example of an Entity Set. The attribute \underline{ID} is the primary key.}
+\end{figure}
+
+\subsection{Attributes}
+Attributes describe the properties of an entity. They are classified as follows:
+
+\subsubsection{1. Simple vs. Composite Attributes}
+\begin{itemize}
+    \item \textbf{Simple Attribute:} An attribute that cannot be divided further (e.g., \texttt{ID}, \texttt{Salary}).
+    \item \textbf{Composite Attribute:} An attribute that has meaningful sub-parts. For example, a \texttt{Name} attribute might be composed of \texttt{First Name}, \texttt{Middle Initial}, and \texttt{Last Name}.
+    \item \textbf{ERD Notation:} Composite attributes are connected to their parent attribute.
+\end{itemize}
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[node distance=2cm]
+        % Entity
+        \node[entity] (person) {Person};
+
+        % Simple Attribute
+        \node[attribute] (id) [left of=person, xshift=-0.5cm] {ID};
+
+        % Composite Attribute Root
+        \node[attribute] (name) [right of=person, xshift=0.5cm] {Name};
+        
+        % Composite Components
+        \node[attribute] (fname) [above right of=name, xshift=1cm] {First Name};
+        \node[attribute] (lname) [below right of=name, xshift=1cm] {Last Name};
+
+        % Connections
+        \draw[line] (person) -- (id);
+        \draw[line] (person) -- (name);
+        \draw[line] (name) -- (fname);
+        \draw[line] (name) -- (lname);
+    \end{tikzpicture}
+    \caption{Simple Attribute (ID) vs. Composite Attribute (Name broken into parts).}
+\end{figure}
+
+\subsubsection{2. Single-valued vs. Multi-valued Attributes}
+\begin{itemize}
+    \item \textbf{Single-valued:} The attribute holds a single value for a specific entity.
+    \item \textbf{Multi-valued:} The attribute may hold multiple values (e.g., phone numbers). Multi-valued attribute allows for multiple entries for the same property.
+    \item \textbf{ERD Notation:} Enclosed in a \textbf{double ellipse}.
+\end{itemize}
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[node distance=2.5cm]
+        % Entity
+        \node[entity] (student) {Student};
+
+        % Single-valued Attribute
+        \node[attribute] (id) [left of=student] {ID};
+
+        % Multi-valued Attribute (Double Ellipse)
+        \node[multivalued attribute] (phone) [right of=student] {Phone};
+
+        % Connections
+        \draw[line] (student) -- (id);
+        \draw[line] (student) -- (phone);
+    \end{tikzpicture}
+    \caption{Single-valued (ID) vs. Multi-valued Attribute (Phone), denoted by a double ellipse.}
+\end{figure}
+\subsubsection{3. Derived Attributes}
+\begin{itemize}
+    \item The value is computed from other attributes (e.g., \texttt{Age} from \texttt{Date\_of\_Birth}).
+    \item \textbf{ERD Notation:} Enclosed in a \textbf{dashed ellipse}.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[node distance=1.5cm]
+        % Entity
+        \node[entity] (instructor) {Instructor};
+
+        % Simple Attribute
+        \node[key attribute] (id) [left of=instructor, xshift=-1.5cm] {\underline{ID}};
+        
+        % Multivalued Attribute
+        \node[multivalued attribute] (phone) [above left of=instructor, xshift=-0.5cm, yshift=0.5cm] {Phone};
+        
+        % Derived Attribute
+        \node[derived attribute] (age) [below left of=instructor, xshift=-0.5cm, yshift=-0.5cm] {Age};
+
+        % Composite Attribute Root
+        \node[attribute] (name) [right of=instructor, xshift=1.5cm] {Name};
+        
+        % Composite Components
+        \node[attribute] (fname) [above right of=name, xshift=1cm] {First Name};
+        \node[attribute] (lname) [below right of=name, xshift=1cm] {Last Name};
+
+        % Connections
+        \draw[line] (instructor) -- (id);
+        \draw[line] (instructor) -- (phone);
+        \draw[line] (instructor) -- (age);
+        \draw[line] (instructor) -- (name);
+        \draw[line] (name) -- (fname);
+        \draw[line] (name) -- (lname);
+    \end{tikzpicture}
+    \caption{Entity with Composite (Name), Multi-valued (Phone), and Derived (Age) attributes.}
+\end{figure}
+
+\newpage
+\section{Relationships}
+
+A \textbf{relationship} is an association between entities. For example, an \texttt{advisor} relationship links a \texttt{Student} entity with an \texttt{Instructor} entity.
+
+\subsection{Visual Representation}
+\begin{itemize}
+    \item \textbf{Diamonds} represent relationship sets.
+    \item Solid lines connect the diamond to the participating entity sets.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[node distance=4cm] % Increased distance to 4cm
+        % 1. Define Instructor
+        \node[entity] (instructor) {Instructor};
+
+        % 2. Place Advisor to the right of Instructor
+        \node[relationship] (advisor) [right of=instructor] {Advisor};
+
+        % 3. Place Student to the right of Advisor
+        \node[entity] (student) [right of=advisor] {Student};
+
+        % Draw connections
+        \draw[line] (instructor) -- (advisor);
+        \draw[line] (advisor) -- (student);
+    \end{tikzpicture}
+    \caption{A simple binary relationship connecting Instructor and Student.}
+\end{figure}
+\subsection{Roles and Recursive Relationships}
+
+\subsubsection{Concept Definition}
+In most relationships, we connect two \textit{different} entity sets (e.g., a \texttt{Student} takes a \texttt{Course}). However, sometimes an entity set needs to relate to \textbf{itself}. This is called a \textbf{recursive relationship}.
+
+\textbf{Real-world Logic:}
+Imagine a single table containing a list of all University Courses.
+\begin{itemize}
+    \item \textit{Course A} (Introduction to C) is a prerequisite for \textit{Course B} (Data Structures).
+    \item Both A and B belong to the same entity set: \textbf{Course}.
+    \item We are linking a record in the \texttt{Course} entity to another record in the \textit{same} \texttt{Course} entity.
+\end{itemize}
+
+\subsubsection{The Necessity of Roles}
+Since both participants in the relationship are the same entity set, the meaning of the relationship can become ambiguous. To solve this, we use \textbf{Roles}.
+\begin{itemize}
+    \item Roles are labels placed on the relationship lines to specify \textit{how} the entity participates.
+    \item In the prerequisite example, one instance of the course plays the role of the \textbf{Main Course} (the one having a requirement), and the other plays the role of the \textbf{Prerequisite} (the requirement itself).
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[node distance=3cm]
+        % Entity
+        \node[entity] (course) {Course};
+
+        % Relationship
+        \node[relationship] (prereq_rel) [right of=course, xshift=2cm] {Prereq};
+
+        % Attributes for clarity
+        \node[attribute] (cid) [above of=course] {Course\_ID};
+        \node[attribute] (title) [below of=course] {Title};
+        \draw[line] (course) -- (cid);
+        \draw[line] (course) -- (title);
+
+        % --- FIXED CONNECTIONS WITH EXTRA WHITESPACE ---
+        
+        % Line 1: Main Course (Top Line)
+        % Connects top corners. Labels are forced ABOVE the line.
+        \draw[line] (course.north east) -- (prereq_rel.north west)
+            node[midway, above, sloped] {\scriptsize Main Course}
+            node[pos=0.2, above] {\scriptsize (N)\ \ \ \ }; % Added \ \ for extra space
+
+        % Line 2: Prerequisite (Bottom Line)
+        % Connects bottom corners. Labels are forced BELOW the line.
+        \draw[line] (course.south east) -- (prereq_rel.south west)
+            node[midway, below, sloped] {\scriptsize Prerequisite}
+            node[pos=0.2, below] {\scriptsize (M)\ \ \ \ }; % Added \ \ for extra space
+        
+        % Explanation note
+        \node[align=left, font=\footnotesize, color=gray] at (5,-2) {* Ideally, read as: \\ "One Main Course has \\ many Prerequisites"};
+
+    \end{tikzpicture}
+    \caption{Recursive Relationship: The \texttt{Course} entity participates twice. Top line represents the course taking the requirement; bottom line represents the requirement itself.}
+\end{figure}
+
+\subsubsection{Implementation Note}
+When mapping this to a database table (Implementation Phase), a recursive relationship typically results in a \textbf{Self-Join}. You would add a Foreign Key column (e.g., \texttt{prereq\_id}) to the \texttt{Course} table that references the \texttt{course\_id} of the same table.
+\subsection{Attributes on Relationships}
+Attributes can also be assigned to relationships. For instance, in an \texttt{Advisor} relationship, we might need to track the \texttt{date} the student was assigned to that instructor. This attribute is attached to the diamond.
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[node distance=4cm]
+        % Define Nodes
+        \node[entity] (instructor) {Instructor};
+        \node[relationship] (advisor) [right of=instructor] {Advisor};
+        \node[entity] (student) [right of=advisor] {Student};
+
+        % Attribute attached to relationship
+        % Positioned above the diamond
+        \node[attribute] (date) [above of=advisor, node distance=2cm] {date};
+
+        % Connections
+        \draw[line] (instructor) -- (advisor);
+        \draw[line] (advisor) -- (student);
+        
+        % Dashed line is typically used for attributes on relationships (as per PDF Page 16)
+        \draw[thick, dashed] (advisor) -- (date); 
+    \end{tikzpicture}
+    \caption{A relationship attribute (date) attached to the Advisor relationship.}
+\end{figure}
+
+\newpage
+\section{Constraints and Cardinality}
+
+Mapping cardinality defines the number of entities to which another entity can be associated via a relationship set.
+
+\subsection{Visual Notation (Arrow Styles)}
+In standard ER diagrams, the style of the line tip indicates cardinality:
+\begin{itemize}
+    \item \textbf{Directed Line ($\rightarrow$):} Represents ``One''.
+    \item \textbf{Undirected Line (—):} Represents ``Many'' (zero or more).
+\end{itemize}
+
+\subsection{Types of Mapping Cardinalities}
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lp{8cm}l@{}}
+\toprule
+\textbf{Type} & \textbf{Description} & \textbf{Diagram Style} \\ \midrule
+\textbf{One-to-One} & An entity in A is associated with at most one in B, and vice versa. & $\rightarrow$ on both sides \\
+\textbf{One-to-Many} & An entity in A is associated with many in B. An entity in B is associated with at most one in A. & $\rightarrow$ on A, — on B \\
+\textbf{Many-to-One} & An entity in A is associated with at most one in B. An entity in B is associated with many in A. & — on A, $\rightarrow$ on B \\
+\textbf{Many-to-Many} & Entities in both sets can be associated with any number of entities in the other set. & — on both sides \\ \bottomrule
+\end{tabular}
+\caption{Cardinality Mapping Styles.}
+\end{table}
+
+% --- One-to-One Figure ---
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[node distance=4cm]
+        \node[entity] (instructor) {Instructor};
+        \node[relationship] (advisor) [right of=instructor] {Advisor};
+        \node[entity] (student) [right of=advisor] {Student};
+
+        % One-to-One: Arrows on BOTH sides
+        \draw[arrow] (advisor) -- (instructor);
+        \draw[arrow] (advisor) -- (student);
+    \end{tikzpicture}
+    \caption{\textbf{One-to-One}: A student has at most one advisor, and an instructor advises at most one student.}
+\end{figure}
+
+% --- One-to-Many Figure ---
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[node distance=4cm]
+        \node[entity] (instructor) {Instructor};
+        \node[relationship] (advisor) [right of=instructor] {Advisor};
+        \node[entity] (student) [right of=advisor] {Student};
+
+        % One-to-Many: Arrow to Instructor (One), Line to Student (Many)
+        \draw[arrow] (advisor) -- (instructor);
+        \draw[line] (advisor) -- (student);
+    \end{tikzpicture}
+    \caption{\textbf{One-to-Many}: An instructor can advise many students, but a student has only one advisor.}
+\end{figure}
+
+% --- Many-to-One Figure ---
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[node distance=4cm]
+        \node[entity] (instructor) {Instructor};
+        \node[relationship] (advisor) [right of=instructor] {Advisor};
+        \node[entity] (student) [right of=advisor] {Student};
+
+        % Many-to-One: Line to Instructor (Many), Arrow to Student (One)
+        \draw[line] (advisor) -- (instructor);
+        \draw[arrow] (advisor) -- (student);
+    \end{tikzpicture}
+    \caption{\textbf{Many-to-One}: An instructor is associated with at most one student, but a student may have many instructors.}
+\end{figure}
+
+% --- Many-to-Many Figure ---
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[node distance=4cm]
+        \node[entity] (instructor) {Instructor};
+        \node[relationship] (advisor) [right of=instructor] {Advisor};
+        \node[entity] (student) [right of=advisor] {Student};
+
+        % Many-to-Many: Lines on BOTH sides
+        \draw[line] (advisor) -- (instructor);
+        \draw[line] (advisor) -- (student);
+    \end{tikzpicture}
+    \caption{\textbf{Many-to-Many}: An instructor advises many students, and a student has many advisors (e.g., joint supervision).}
+\end{figure}
+
+\subsection{Participation Constraints}
+\begin{itemize}
+    \item \textbf{Total Participation:} Every entity in the set \textit{must} participate in the relationship. This is indicated by a \textbf{double line}.
+    \item \textbf{Partial Participation:} Some entities may not participate. This is indicated by a \textbf{single line}.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[node distance=4cm]
+        \node[entity] (student) {Student};
+        \node[relationship] (advisor) [right of=student] {Advisor};
+        \node[entity] (instructor) [right of=advisor] {Instructor};
+
+        % Total Participation: Student MUST have an advisor (Double Line)
+        % Partial Participation: Instructor might not advise anyone (Single Line)
+        
+        \draw[line, double, double distance=2pt] (student) -- (advisor); % Double line
+        \draw[line] (advisor) -- (instructor); % Single line
+    \end{tikzpicture}
+    \caption{\textbf{Total Participation}: The double line connecting \texttt{Student} and \texttt{Advisor} indicates that every student must have an associated instructor.}
+\end{figure}
+
+\newpage
+\section{Advanced ER Features}
+
+\subsection{Weak Entity Sets}
+A \textbf{weak entity} is an entity that cannot be uniquely identified by its own attributes alone. It typically represents a dependency.
+\begin{itemize}
+    \item It must be associated with a \textbf{strong entity} (owner entity).
+    \item It uses a \textbf{discriminator} (partial key) combined with the strong entity's primary key for unique identification.
+\end{itemize}
+
+\textbf{Diagram Notation:}
+\begin{itemize}
+    \item \textbf{Weak Entity Set:} Double Rectangle.
+    \item \textbf{Identifying Relationship:} Double Diamond.
+    \item \textbf{Discriminator Attribute:} Dashed Underline.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[node distance=2.5cm]
+        % Strong Entity
+        \node[entity] (customer) {Customer};
+        \node[key attribute] (cid) [above of=customer] {\underline{C\_id}};
+
+        % Weak Relationship
+        \node[weak relationship] (borrows) [right of=customer, xshift=2cm] {Borrows};
+
+        % Weak Entity
+        \node[weak entity] (loan) [right of=borrows, xshift=2cm] {Loan};
+        \node[attribute] (lid) [above of=loan] {\underline{L\_no}}; % Partial key usually dashed underline, represented here as underline for simplicity or use \dashuline with ulem package
+
+        % Connections
+        \draw[line] (customer) -- (cid);
+        \draw[line] (customer) -- (borrows);
+        % Double line often used for total participation of weak entity
+        \draw[double, thick] (borrows) -- (loan); 
+        \draw[line] (loan) -- (lid);
+    \end{tikzpicture}
+    \caption{Weak Entity Example: \texttt{Loan} depends on \texttt{Customer}.}
+\end{figure}
+
+
+
+\newpage
+\section{Implementation: Solved Example (Complex ERD to Tables)}
+
+Instead of memorizing abstract rules, let us walk through a complete, solved example of converting a complex ER Diagram into a Relational Schema (SQL Tables).
+
+\subsection{The Scenario: University Academic System}
+Consider the following ER Diagram representing a university system. It contains:
+\begin{itemize}
+    \item \textbf{Strong Entities:} \texttt{Student} and \texttt{Course}.
+    \item \textbf{Weak Entity:} \texttt{Exam} (Dependent on Course).
+    \item \textbf{Multi-valued Attribute:} \texttt{Phone} on Student.
+    \item \textbf{M:N Relationship:} \texttt{Enrolled} (Student takes Course) with a descriptive attribute \texttt{Grade}.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[node distance=4cm]
+        % --- Strong Entity: STUDENT ---
+        \node[entity] (student) {Student};
+        
+        % Attributes with explicit shifts to avoid overlap
+        \node[key attribute] (sid) [above left of=student, xshift=-0.5cm] {\underline{S\_ID}};
+        \node[attribute] (sname) [above of=student, yshift=0.5cm] {Name};
+        \node[multivalued attribute] (phone) [below left of=student, xshift=-0.5cm] {Phone};
+        
+        \draw[line] (student) -- (sid);
+        \draw[line] (student) -- (sname);
+        \draw[line] (student) -- (phone);
+
+        % --- Strong Entity: COURSE ---
+        % Positioned 7cm to the right to give plenty of space for the relationship
+        \node[entity] (course) [right of=student, node distance=7cm] {Course};
+        
+        \node[key attribute] (cid) [above right of=course, xshift=0.5cm] {\underline{C\_ID}};
+        \node[attribute] (title) [above of=course, yshift=0.5cm] {Title};
+        
+        \draw[line] (course) -- (cid);
+        \draw[line] (course) -- (title);
+
+        % --- M:N Relationship: ENROLLED ---
+        % Placed exactly halfway (3.5cm) between Student (0) and Course (7)
+        \node[relationship] (enrolled) [right of=student, node distance=3.5cm] {Enrolled};
+        
+        % Descriptive Attribute
+        \node[attribute] (grade) [below of=enrolled, node distance=2cm] {Grade};
+        \draw[dashed] (enrolled) -- (grade);
+        
+        % M:N connections with labels
+        \draw[line] (student) -- node[above, pos=0.3] {M} (enrolled);
+        \draw[line] (enrolled) -- node[above, pos=0.7] {N} (course);
+
+        % --- Weak Entity: EXAM ---
+        % Placed below Course
+        \node[weak relationship] (has) [below of=course, node distance=3cm] {Has};
+        \node[weak entity] (exam) [below of=has, node distance=3cm] {Exam};
+        
+        % Weak Entity Attributes
+        \node[attribute] (enum) [right of=exam, node distance=3cm] {\dashuline{Exam\_No}}; % Partial Key
+        \node[attribute] (date) [left of=exam, node distance=3cm] {Date};
+
+        % Weak Entity Connections
+        \draw[double, thick] (course) -- (has);
+        \draw[double, thick] (has) -- (exam);
+        \draw[line] (exam) -- (enum);
+        \draw[line] (exam) -- (date);
+
+    \end{tikzpicture}
+    \caption{Complex ERD for conversion practice.}
+\end{figure}
+
+\subsection{Step-by-Step Conversion}
+
+\subsubsection{Step 1: Strong Entities}
+Create tables for independent entities. All simple attributes become columns.
+\begin{lstlisting}[language=SQL]
+CREATE TABLE Student (
+    S_ID INT PRIMARY KEY,
+    Name VARCHAR(100)
+);
+
+CREATE TABLE Course (
+    C_ID VARCHAR(10) PRIMARY KEY,
+    Title VARCHAR(100)
+);
+\end{lstlisting}
+
+\subsubsection{Step 2: Multi-valued Attributes}
+The \texttt{Phone} attribute on \texttt{Student} cannot be stored in the main \texttt{Student} table (violates 1NF). We create a separate table.
+\begin{itemize}
+    \item \textbf{Columns:} Owner's Primary Key + The Attribute itself.
+    \item \textbf{Composite Primary Key:} (S\_ID, Phone).
+\end{itemize}
+\begin{lstlisting}[language=SQL]
+CREATE TABLE Student_Phone (
+    S_ID INT,
+    Phone_Number VARCHAR(15),
+    PRIMARY KEY (S_ID, Phone_Number),
+    FOREIGN KEY (S_ID) REFERENCES Student(S_ID)
+);
+\end{lstlisting}
+
+\subsubsection{Step 3: Weak Entities}
+The \texttt{Exam} entity relies on \texttt{Course}. It has no unique ID of its own, only \texttt{Exam\_No} (e.g., Exam 1, Exam 2).
+\begin{itemize}
+    \item \textbf{Foreign Key:} Include \texttt{C\_ID} from \texttt{Course}.
+    \item \textbf{Composite Primary Key:} (C\_ID, Exam\_No).
+\end{itemize}
+\begin{lstlisting}[language=SQL]
+CREATE TABLE Exam (
+    C_ID VARCHAR(10),       -- From Strong Entity
+    Exam_No INT,            -- Partial Key
+    Exam_Date DATE,
+    PRIMARY KEY (C_ID, Exam_No),
+    FOREIGN KEY (C_ID) REFERENCES Course(C_ID) 
+        ON DELETE CASCADE   -- If Course is deleted, Exams are deleted
+);
+\end{lstlisting}
+
+\subsubsection{Step 4: Many-to-Many (M:N) Relationship}
+The \texttt{Enrolled} relationship links \texttt{Student} and \texttt{Course}. Since it is M:N, we cannot simply add a foreign key to either table. We need a \textbf{Junction Table}.
+\begin{itemize}
+    \item \textbf{Columns:} FK from Student + FK from Course + Descriptive Attributes (Grade).
+    \item \textbf{Composite Primary Key:} (S\_ID, C\_ID).
+\end{itemize}
+\begin{lstlisting}[language=SQL]
+CREATE TABLE Enrolled (
+    S_ID INT,
+    C_ID VARCHAR(10),
+    Grade CHAR(2),
+    PRIMARY KEY (S_ID, C_ID),
+    FOREIGN KEY (S_ID) REFERENCES Student(S_ID),
+    FOREIGN KEY (C_ID) REFERENCES Course(C_ID)
+);
+\end{lstlisting}
+
+\end{document}

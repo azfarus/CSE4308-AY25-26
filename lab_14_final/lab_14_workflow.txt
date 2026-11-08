@@ -1,0 +1,17 @@
+psql
+
+SELECT pg_terminate_backend(pid)
+FROM pg_stat_activity
+WHERE datname = 'cse4308_12345'
+  AND pid <> pg_backend_pid();
+DROP DATABASE IF EXISTS cse4308_12345;
+DROP ROLE IF EXISTS student_12345;
+CREATE ROLE student_12345 LOGIN;
+ALTER ROLE student_12345 WITH PASSWORD 'student12345';
+CREATE DATABASE cse4308_12345 OWNER student_12345;
+GRANT ALL PRIVILEGES ON DATABASE cse4308_12345 TO student_12345;
+
+\q
+psql -h localhost -U student_12345 -d cse4308_12345 -f /home/cse/Downloads/lab_14_setup.sql
+psql -h localhost -U student_12345 -d cse4308_12345
+\dt

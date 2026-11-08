@@ -1,0 +1,1494 @@
+% !TEX program = lualatex
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\setmonofont{Latin Modern Mono}
+\usepackage[margin=1in]{geometry}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{fancyhdr}
+\usepackage{ifthen}
+
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    columns=fullflexible,
+    keepspaces=true,
+    frame=single,
+    backgroundcolor=\color{gray!10},
+    keywordstyle=\color{blue},
+    commentstyle=\color{green!50!black},
+}
+
+% =====================================================
+% ANSWER VISIBILITY FLAG
+% Set to 1 to show answers, 0 to hide answers
+% =====================================================
+\newcommand{\showanswers}{1}
+% =====================================================
+
+\newcommand{\answer}[1]{%
+    \ifthenelse{\equal{\showanswers}{1}}{%
+        \par\textbf{Answer:} \textit{#1}\par\vspace{0.5em}%
+    }{}%
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{CSE 4308 - Database Lab}
+\lhead{Viva Questions}
+\rfoot{Page \thepage}
+
+\title{\textbf{CSE 4308 Database Lab - Viva Questions}}
+\author{Samnun Azfar, Jr. Lecturer, CSE \\ Samia Nawsheen, Jr. Lecturer, CSE}
+\date{Academic Year: AY25-26}
+
+\begin{document}
+\maketitle
+
+\section{Data Definition Language (DDL)}
+
+\begin{enumerate}[label=\textbf{Q\arabic*.}]
+    \item What happens if you try to DROP a table that is referenced by a foreign key in another table?
+    \answer{Error is raised. You must drop the referencing table first or use DROP TABLE ... CASCADE to drop dependent objects.}
+    
+    \item Explain the difference between \texttt{ON DELETE CASCADE} and \texttt{ON DELETE SET NULL}. When would each be inappropriate?
+    \answer{CASCADE deletes child rows when parent is deleted. SET NULL sets FK to NULL. CASCADE inappropriate when child data should be preserved. SET NULL inappropriate when FK column is NOT NULL.}
+    
+    \item Can you add a \texttt{NOT NULL} constraint to an existing column that already contains NULL values? What happens?
+    \answer{No. The ALTER fails with an error. You must first UPDATE all NULL values to non-NULL before adding the constraint.}
+    
+    \item What is the difference between a \texttt{UNIQUE} constraint and a \texttt{PRIMARY KEY}? Can a table have multiple of each?
+    \answer{PRIMARY KEY = UNIQUE + NOT NULL. Table can have only one PK but multiple UNIQUE constraints. UNIQUE allows NULL (one per column in most DBs).}
+    
+    \item If you \texttt{ALTER TABLE} to add a foreign key, but existing data violates the constraint, what happens?
+    \answer{The ALTER fails with a constraint violation error. Existing data must satisfy the FK relationship before the constraint can be added.}
+    
+    \item Can a foreign key reference a non-primary key column? What conditions must be met?
+    \answer{Yes, but the referenced column must have a UNIQUE constraint. The FK must reference a column that guarantees uniqueness.}
+    
+    \item What happens if you define a \texttt{CHECK} constraint that references another table's column?
+    \answer{Error. CHECK constraints can only reference columns in the same row/table. Use triggers or FK constraints for cross-table validation.}
+    
+    \item What is the difference between \texttt{DROP TABLE} and \texttt{DROP TABLE IF EXISTS}?
+    \answer{DROP TABLE raises error if table doesn't exist. DROP TABLE IF EXISTS succeeds silently if table doesn't exist.}
+    
+    \item Can you have multiple \texttt{UNIQUE} constraints on the same column? What about across multiple columns?
+    \answer{Yes to both. Multiple UNIQUE on same column is redundant but allowed. UNIQUE(a,b) means combination must be unique, different from separate UNIQUE(a), UNIQUE(b).}
+    
+    \item What is \texttt{ON UPDATE CASCADE}? When would you use it?
+    \answer{When parent PK is updated, child FK values are automatically updated to match. Use when PK values may change and referential integrity must be maintained.}
+    
+    \item Can you alter a column's data type if it contains data? What restrictions apply?
+    \answer{Yes, if data is compatible with new type. Cannot change VARCHAR to INT if column contains non-numeric strings. May need explicit USING clause for conversion.}
+    
+    \item What happens if you try to add a \texttt{PRIMARY KEY} to a column that has duplicate values?
+    \answer{Error. PK requires uniqueness. Must remove duplicates first before adding the constraint.}
+    
+    \item What is the difference between a composite primary key and multiple unique constraints?
+    \answer{Composite PK: combination of columns is unique and identifies row. Multiple UNIQUE: each constraint enforces uniqueness independently. Composite PK(a,b) allows duplicate a if b differs.}
+    
+    \item Can a foreign key reference a composite primary key? How do you define it?
+    \answer{Yes. FK must include all columns of composite PK. Syntax: FOREIGN KEY (col1, col2) REFERENCES parent(pk1, pk2).}
+    
+    \item You have table A with PK, table B with FK referencing A, and table C with FK referencing B. What order must you DROP them? What if you use CASCADE?
+    \answer{Without CASCADE: C first, then B, then A (children before parents). With DROP TABLE A CASCADE: drops A and all dependent objects automatically.}
+    
+    \item A column has DEFAULT 0 and NOT NULL. What happens if you INSERT without specifying this column?
+    \answer{Column gets value 0 (the default). No error because NOT NULL is satisfied by the default value.}
+\end{enumerate}
+
+\section{Data Manipulation Language (DML)}
+
+\begin{enumerate}[resume, label=\textbf{Q\arabic*.}]
+    \item Can you use a subquery in an \texttt{UPDATE} statement's \texttt{SET} clause? What restriction applies?
+    \answer{Yes. The subquery must return exactly one value (scalar subquery). Multiple rows cause an error.}
+    
+    \item If an \texttt{INSERT} violates a \texttt{UNIQUE} constraint, does it affect other rows in a multi-row insert?
+    \answer{Depends on DB. PostgreSQL: entire statement fails, no rows inserted (atomic). Some DBs may insert valid rows before the error.}
+    
+    \item What happens when you \texttt{UPDATE} a column that is part of a primary key and is referenced by foreign keys?
+    \answer{Depends on FK definition. ON UPDATE CASCADE: child FKs updated. ON UPDATE RESTRICT/NO ACTION: error if children exist.}
+    
+    \item Explain what happens if you run: \texttt{DELETE FROM employees WHERE department\_id IN (SELECT id FROM departments WHERE budget < 0)} and the subquery returns no rows.
+    \answer{No rows deleted. IN with empty set is always false, so WHERE condition matches nothing.}
+    
+    \item Can you insert into a table without specifying column names? What are the risks?
+    \answer{Yes: INSERT INTO t VALUES (...). Risk: breaks if table structure changes, wrong column order causes data in wrong columns or type errors.}
+    
+    \item What is the difference between \texttt{INSERT INTO ... VALUES} and \texttt{INSERT INTO ... SELECT}?
+    \answer{VALUES inserts literal values you specify. SELECT inserts results from a query, can insert multiple rows from another table.}
+    
+    \item Can you \texttt{UPDATE} multiple columns in a single statement? Can they reference each other?
+    \answer{Yes, multiple columns: SET a=1, b=2. They reference OLD values, not each other's new values. SET a=b, b=a swaps correctly.}
+    
+    \item Can you use \texttt{LIMIT} in an \texttt{UPDATE} or \texttt{DELETE} statement? What does it do?
+    \answer{PostgreSQL: No direct LIMIT, use subquery with ctid. MySQL: Yes. Limits number of rows affected. Useful for batch operations.}
+    
+    \item Can you insert a row with only default values? What is the syntax?
+    \answer{Yes. Syntax: INSERT INTO table DEFAULT VALUES; All columns get their default or NULL if no default defined.}
+    
+    \item What happens if you try to insert a string into an integer column?
+    \answer{Error if string is not numeric. If string is numeric like \texttt{'123'}, implicit conversion may succeed depending on DB settings.}
+    
+    \item What is the difference between implicit and explicit type conversion in INSERT?
+    \answer{Implicit: DB auto-converts compatible types (\texttt{'123'} to 123). Explicit: use CAST(x AS type). Implicit may fail or give unexpected results.}
+    
+    \item You run UPDATE employees SET salary = salary * 1.1. The table has 1000 rows. How many rows are affected if 50 have NULL salary?
+    \answer{1000 rows affected (all touched), but 50 remain NULL because NULL * 1.1 = NULL. Affected count includes unchanged rows.}
+    
+    \item Write a single statement to delete all employees who earn more than their department's average salary.
+    \answer{DELETE FROM employees e WHERE salary > (SELECT AVG(salary) FROM employees WHERE department\_id = e.department\_id). Uses correlated subquery.}
+\end{enumerate}
+
+\section{Joins}
+
+\begin{enumerate}[resume, label=\textbf{Q\arabic*.}]
+    \item In a \texttt{LEFT JOIN}, if the right table has multiple matching rows, how many rows appear in the result?
+    \answer{Multiple rows. Left table row is repeated for each matching right table row. Result has one row per match.}
+    
+    \item What is the difference between \texttt{JOIN ... ON} and \texttt{JOIN ... USING}? When can you not use \texttt{USING}?
+    \answer{ON: specify full condition (a.id = b.id). USING(col): columns must have same name in both tables. Can't use USING when column names differ.}
+    
+    \item How does a \texttt{NATURAL JOIN} decide which columns to join on? What is the danger of using it?
+    \answer{Joins on ALL columns with same name. Danger: adding a column with common name (like \texttt{'name'}, \texttt{'id'}) silently changes join behavior.}
+    
+    \item If both tables in a join have NULL values in the join column, will those rows match?
+    \answer{No. NULL = NULL is unknown/false. Rows with NULL in join column never match each other.}
+    
+    \item Explain the difference between \texttt{WHERE} conditions and \texttt{ON} conditions in an outer join. Give an example where they produce different results.
+    \answer{ON: applied during join, non-matches still appear with NULLs. WHERE: filters after join, removes non-matching rows. LEFT JOIN ... ON a.x=b.x WHERE b.y=1 removes unmatched left rows.}
+    
+    \item What is a self-join? Give a scenario where it's necessary.
+    \answer{Joining table to itself using aliases. Example: employees table with manager\_id referencing employee\_id. Self-join to get employee with their manager's name.}
+    
+    \item In a \texttt{FULL OUTER JOIN}, how are NULLs represented for non-matching rows from each side?
+    \answer{Non-matching left row: right columns are NULL. Non-matching right row: left columns are NULL. Shows all rows from both tables.}
+    
+    \item Can you join more than two tables? What is the order of evaluation?
+    \answer{Yes. Evaluated left to right: A JOIN B JOIN C = (A JOIN B) JOIN C. Use parentheses to control order if needed.}
+    
+    \item What is a cross join? What is its result size if table A has M rows and table B has N rows?
+    \answer{Cartesian product - every row of A paired with every row of B. Result has M * N rows.}
+    
+    \item What is the difference between \texttt{INNER JOIN} and comma-separated tables in \texttt{FROM}?
+    \answer{Functionally same if WHERE has join condition. INNER JOIN is explicit and clearer. Comma syntax is older, join condition in WHERE.}
+    
+    \item Can you join a table with itself using different aliases? Why would you do this?
+    \answer{Yes, that's a self-join. Use to compare rows within same table or follow hierarchical relationships (employee-manager).}
+    
+    \item What happens if you omit the \texttt{ON} clause in an \texttt{INNER JOIN}?
+    \answer{Syntax error in standard SQL. Some DBs treat it as cross join. Always specify ON condition.}
+    
+    \item How do you find rows in table A that have no matching rows in table B?
+    \answer{LEFT JOIN B ON ... WHERE B.key IS NULL. Or: WHERE NOT EXISTS (SELECT 1 FROM B WHERE B.key = A.key).}
+    
+    \item If you join three tables A, B, C, does the order of joins matter for the result? For performance?
+    \answer{Result: same for inner joins (mathematically). Performance: yes, optimizer chooses order but hints can help. Outer join order affects results.}
+    
+    \item Table employees has 100 rows, departments has 5 rows. What is the maximum possible result size for: INNER JOIN? LEFT JOIN? CROSS JOIN?
+    \answer{INNER: 100 max (if all match one dept). LEFT: 100 min (all left rows appear). CROSS: 500 exactly (100 * 5).}
+    
+    \item Write a query to find employees whose salary is higher than all employees in department 10, using a join (not subquery).
+    \answer{SELECT e1.* FROM employees e1 JOIN (SELECT MAX(salary) as max\_sal FROM employees WHERE dept\_id=10) d ON e1.salary > d.max\_sal. Or self-join with GROUP BY.}
+    
+    \item Explain why LEFT JOIN a ON condition WHERE a.col = value often gives unexpected results.
+    \answer{WHERE filters AFTER join, removing rows where a.col is NULL (unmatched rows). Use AND in ON clause instead to preserve unmatched left rows.}
+    
+    \item How do you find all employees along with their manager's name (including those without managers)?
+    \answer{SELECT e.name, m.name as manager FROM employees e LEFT JOIN employees m ON e.manager\_id = m.id. Self-join with LEFT keeps employees without managers.}
+    
+    \item What is the difference between these: (A JOIN B) JOIN C versus A JOIN (B JOIN C)?
+    \answer{For INNER joins, same result (associative). For OUTER joins, order can change results. Parentheses control which join happens first.}
+    
+    \item Write a query to find pairs of employees who work in the same department.
+    \answer{SELECT e1.name, e2.name FROM employees e1 JOIN employees e2 ON e1.dept\_id = e2.dept\_id AND e1.id < e2.id. Self-join, e1.id < e2.id avoids duplicates.}
+    
+    \item How does USING differ from ON when column names are the same?
+    \answer{USING(col) produces one col column in result. ON a.col = b.col produces two columns (a.col, b.col). USING is shorter when names match.}
+    
+    \item What happens in a LEFT JOIN if the ON condition is always true (ON 1=1)?
+    \answer{Becomes a cross join - every left row paired with every right row. All left rows appear, each multiple times.}
+    
+    \item Write a query to find employees whose salary is higher than their department's average.
+    \answer{SELECT e.* FROM employees e JOIN (SELECT dept\_id, AVG(salary) avg\_sal FROM employees GROUP BY dept\_id) d ON e.dept\_id = d.dept\_id WHERE e.salary > d.avg\_sal.}
+    
+    \item What is the result if you RIGHT JOIN but the right table is empty?
+    \answer{Result is empty. No rows from right table means no rows to join. Opposite of LEFT JOIN with empty left table.}
+    
+    \item How do you find departments that have employees but no managers assigned?
+    \answer{SELECT DISTINCT e.dept\_id FROM employees e LEFT JOIN employees m ON e.manager\_id = m.id WHERE e.manager\_id IS NOT NULL AND m.id IS NULL. FK exists but no matching manager.}
+    
+    \item Write a query to find customers and their orders, including customers with no orders and orders with no customers (orphans).
+    \answer{SELECT * FROM customers c FULL OUTER JOIN orders o ON c.id = o.customer\_id. FULL OUTER includes unmatched rows from both sides.}
+    
+    \item Can you join the same table twice in one query? When would you need this?
+    \answer{Yes. Example: SELECT * FROM orders o JOIN products p1 ON o.product1\_id = p1.id JOIN products p2 ON o.product2\_id = p2.id. Multiple FKs to same table.}
+    
+    \item What is wrong with: SELECT * FROM A, B LEFT JOIN C ON B.id = C.b\_id?
+    \answer{Comma has lower precedence than JOIN. Parses as: A, (B LEFT JOIN C). Use explicit joins: A JOIN B ON ... LEFT JOIN C ON ...}
+\end{enumerate}
+
+\section{Aggregate Functions}
+
+\begin{enumerate}[resume, label=\textbf{Q\arabic*.}]
+    \item What is the difference between \texttt{COUNT(*)} and \texttt{COUNT(column\_name)}?
+    \answer{COUNT(*) counts all rows including NULLs. COUNT(column) counts non-NULL values in that column only.}
+    
+    \item How do \texttt{SUM()}, \texttt{AVG()}, \texttt{MIN()}, and \texttt{MAX()} handle NULL values?
+    \answer{They ignore NULLs. SUM of 1,2,NULL = 3. AVG of 1,2,NULL = 1.5 (divides by 2, not 3).}
+    
+    \item What does \texttt{COUNT(DISTINCT column)} do? How is it different from \texttt{COUNT(column)}?
+    \answer{COUNT(DISTINCT) counts unique non-NULL values. COUNT(column) counts all non-NULL values including duplicates.}
+    
+    \item If all values in a column are NULL, what does \texttt{AVG(column)} return?
+    \answer{Returns NULL. No non-NULL values to average.}
+    
+    \item Can you use an aggregate function in a \texttt{WHERE} clause? Why or why not?
+    \answer{No. WHERE filters rows before grouping. Aggregates need grouped data. Use HAVING for aggregate conditions.}
+    
+    \item What happens if you use \texttt{SUM()} on a VARCHAR column containing numeric strings?
+    \answer{Error in strict mode. Some DBs attempt implicit conversion. PostgreSQL: error. Best practice: use proper numeric types.}
+    
+    \item What is the difference between \texttt{COUNT(1)} and \texttt{COUNT(*)}?
+    \answer{Functionally identical. COUNT(1) counts rows where 1 is not null (always). COUNT(*) counts all rows. Same result, same performance.}
+    
+    \item What does \texttt{SUM(DISTINCT column)} do? When would you use it?
+    \answer{Sums unique values only. Use when column has duplicates you want to count once, like summing distinct product prices.}
+    
+    \item What is the result of \texttt{AVG(column)} if the column has one NULL and one non-NULL value?
+    \answer{Returns the non-NULL value. NULL is ignored, so AVG of just that one value equals itself.}
+    
+    \item How do you calculate the total count and distinct count in a single query?
+    \answer{SELECT COUNT(*), COUNT(DISTINCT column) FROM table. Both aggregates in same SELECT.}
+    
+    \item What is the difference between \texttt{MIN()} on strings vs numbers?
+    \answer{Numbers: smallest numeric value. Strings: first in alphabetical/collation order. \texttt{'Apple'} < \texttt{'Banana'}. Case sensitivity depends on collation.}
+    
+    \item Can you use \texttt{COUNT()} with a \texttt{CASE} expression inside? What does it count?
+    \answer{Yes. COUNT(CASE WHEN condition THEN 1 END) counts rows matching condition. CASE returns NULL when false, which COUNT ignores.}
+    
+    \item Table has values: 10, 20, 20, NULL, NULL. What is COUNT(*)? COUNT(col)? COUNT(DISTINCT col)? SUM(col)? AVG(col)?
+    \answer{COUNT(*)=5, COUNT(col)=3, COUNT(DISTINCT col)=2, SUM(col)=50, AVG(col)=16.67 (50/3).}
+    
+    \item How would you count employees per department AND show departments with zero employees?
+    \answer{SELECT d.name, COUNT(e.id) FROM departments d LEFT JOIN employees e ON d.id=e.dept\_id GROUP BY d.id, d.name. COUNT(e.id) gives 0 for empty depts.}
+\end{enumerate}
+
+\section{GROUP BY and HAVING}
+
+\begin{enumerate}[resume, label=\textbf{Q\arabic*.}]
+    \item What is the difference between \texttt{WHERE} and \texttt{HAVING}? Can they be used together?
+    \answer{WHERE filters rows before grouping. HAVING filters groups after aggregation. Yes, can use both: WHERE first, then GROUP BY, then HAVING.}
+    
+    \item If you \texttt{GROUP BY} a column with NULL values, how are the NULLs grouped?
+    \answer{All NULLs grouped together into one group. NULL is treated as equal to NULL for grouping purposes.}
+    
+    \item Can you use a column alias defined in \texttt{SELECT} inside the \texttt{HAVING} clause?
+    \answer{PostgreSQL/MySQL: Yes. Standard SQL: No. Best practice: repeat expression or use subquery for portability.}
+    
+    \item What happens if you select a non-aggregated column that is not in the \texttt{GROUP BY} clause?
+    \answer{PostgreSQL: Error. MySQL (non-strict): Returns arbitrary value from group. Always include non-aggregated columns in GROUP BY.}
+    
+    \item Can you \texttt{GROUP BY} an expression or only column names?
+    \answer{Yes, can GROUP BY expressions: GROUP BY EXTRACT(YEAR FROM date), GROUP BY salary/1000. Same expression should be in SELECT.}
+    
+    \item Explain the order of execution: \texttt{WHERE}, \texttt{GROUP BY}, \texttt{HAVING}, \texttt{SELECT}, \texttt{ORDER BY}.
+    \answer{FROM -> WHERE -> GROUP BY -> HAVING -> SELECT -> ORDER BY. WHERE before grouping, HAVING after, SELECT evaluates aliases, ORDER BY last.}
+    
+    \item Can you use \texttt{HAVING} without \texttt{GROUP BY}? What does it do?
+    \answer{Yes. Treats entire table as one group. HAVING condition applies to aggregates over all rows. SELECT COUNT(*) HAVING COUNT(*) > 10.}
+    
+    \item What is the difference between \texttt{GROUP BY column} and \texttt{GROUP BY 1}?
+    \answer{GROUP BY 1 references first column in SELECT list by position. GROUP BY column uses explicit name. Position reference is less readable.}
+    
+    \item Can you \texttt{GROUP BY} multiple columns? How does the grouping work?
+    \answer{Yes. Creates groups for each unique combination of values. GROUP BY dept, year creates separate group for each (dept, year) pair.}
+    
+    \item Can you use a subquery in the \texttt{HAVING} clause?
+    \answer{Yes. HAVING COUNT(*) > (SELECT AVG(cnt) FROM ...). Subquery must return scalar value for comparison.}
+    
+    \item What happens if \texttt{HAVING} references a column not in \texttt{GROUP BY} or an aggregate?
+    \answer{Error. HAVING can only reference GROUP BY columns or aggregate expressions. Non-grouped columns are ambiguous.}
+    
+    \item How do you filter groups to show only those with exactly one row?
+    \answer{HAVING COUNT(*) = 1. Groups where aggregate count equals one.}
+    
+    \item Write a query to find departments where the highest salary is more than twice the lowest salary.
+    \answer{SELECT dept\_id FROM employees GROUP BY dept\_id HAVING MAX(salary) > 2 * MIN(salary).}
+    
+    \item You want the top 3 departments by employee count. Write the query.
+    \answer{SELECT dept\_id, COUNT(*) as cnt FROM employees GROUP BY dept\_id ORDER BY cnt DESC LIMIT 3.}
+    
+    \item How do you find duplicate rows in a table based on columns (name, email)?
+    \answer{SELECT name, email, COUNT(*) FROM users GROUP BY name, email HAVING COUNT(*) > 1.}
+\end{enumerate}
+
+\section{Views}
+
+\begin{enumerate}[resume, label=\textbf{Q\arabic*.}]
+    \item Can you \texttt{INSERT} into a view? What conditions must the view satisfy?
+    \answer{Yes, if view is updatable: single table, no aggregates, no DISTINCT, no GROUP BY, no joins, includes all NOT NULL columns without defaults.}
+    
+    \item If the underlying table of a view is dropped, what happens to the view?
+    \answer{View becomes invalid. Querying it raises error. View definition remains but is broken until table is recreated.}
+    
+    \item Can you create a view based on another view? What are the implications?
+    \answer{Yes, views can reference other views. Creates dependency chain. Performance may suffer due to nested query expansion. Changes cascade.}
+    
+    \item What makes a view non-updatable? List at least 4 conditions.
+    \answer{1) Joins multiple tables 2) Has GROUP BY/aggregates 3) Has DISTINCT 4) Has UNION 5) Has subqueries in SELECT 6) Missing required NOT NULL columns.}
+    
+    \item What is a materialized view? How does it differ from a regular view in terms of storage and performance?
+    \answer{Materialized view stores query result physically. Regular view re-executes query each time. Materialized: faster reads, needs refresh. Regular: always current, slower.}
+    
+    \item If you update data through an updatable view, does the underlying table change?
+    \answer{Yes. View is just a window to table. UPDATE/INSERT/DELETE through view modifies actual base table data.}
+    
+    \item Can a view have an \texttt{ORDER BY} clause? What restrictions apply?
+    \answer{PostgreSQL: Yes, but not guaranteed without ORDER BY in outer query. Standard SQL: No, unless with LIMIT/OFFSET. Views represent sets, inherently unordered.}
+    
+    \item What is \texttt{WITH CHECK OPTION} in a view definition?
+    \answer{Prevents INSERT/UPDATE that would make row invisible to view. If view has WHERE salary > 50000, can't insert row with salary 40000.}
+    
+    \item What happens if you alter the underlying table's structure after creating a view?
+    \answer{Depends on change. Adding column: view unaffected. Dropping column used by view: view becomes invalid. Renaming: view may break.}
+    
+    \item Can a view join multiple tables? Is such a view updatable?
+    \answer{Yes, view can join tables. Generally not updatable. Some DBs allow limited updates to one table if key preserved.}
+    
+    \item What is the difference between \texttt{CREATE VIEW} and \texttt{CREATE OR REPLACE VIEW}?
+    \answer{CREATE fails if view exists. CREATE OR REPLACE overwrites existing view, preserving grants/permissions. Safer for updates.}
+    
+    \item How do you refresh a materialized view? What happens during refresh?
+    \answer{REFRESH MATERIALIZED VIEW name. Query re-executes, results replace old data. CONCURRENTLY option allows reads during refresh.}
+    
+    \item Can a view have parameters like a function?
+    \answer{No. Views don't accept parameters. Use functions returning tables or use session variables as workaround.}
+    
+    \item You create a view: CREATE VIEW high\_earners AS SELECT * FROM employees WHERE salary > 50000. Can you INSERT (1, \texttt{'John'}, 30000)?
+    \answer{Without WITH CHECK OPTION: Yes, row inserted but invisible through view. With CHECK OPTION: Error, row violates view condition.}
+    
+    \item A view selects columns a, b from table t. You ALTER TABLE t ADD COLUMN c. Does SELECT * FROM view show column c?
+    \answer{No. View was defined with specific columns (a, b). New column c not included. Must recreate view to include new columns.}
+\end{enumerate}
+
+\section{Roles and Privileges (DCL)}
+
+\begin{enumerate}[resume, label=\textbf{Q\arabic*.}]
+    \item What is the difference between \texttt{GRANT SELECT ON table TO user} and \texttt{GRANT SELECT ON table TO user WITH GRANT OPTION}?
+    \answer{First gives SELECT privilege only. WITH GRANT OPTION allows user to grant that privilege to others.}
+    
+    \item If you revoke a privilege from a user who granted it to others, what happens to those grants?
+    \answer{CASCADE: all derived grants revoked. RESTRICT: revoke fails if others depend on it. Default behavior varies by DB.}
+    
+    \item Can a role be granted to another role? How does privilege inheritance work?
+    \answer{Yes. Role inherits all privileges of granted roles. User with role A, where A has role B, gets privileges of both A and B.}
+    
+    \item What is the difference between revoking a privilege and denying a privilege?
+    \answer{REVOKE removes granted privilege. DENY (SQL Server) explicitly blocks, overrides grants. PostgreSQL lacks DENY; use careful grant management.}
+    
+    \item What privileges are needed to create a view that references multiple tables owned by different users?
+    \answer{Need SELECT privilege on all referenced tables. View creator must have access to all underlying objects.}
+    
+    \item What is the difference between \texttt{GRANT ALL} and granting individual privileges?
+    \answer{GRANT ALL gives all applicable privileges (SELECT, INSERT, UPDATE, DELETE, etc.). Individual grants give specific privileges only, more secure.}
+    
+    \item Can you grant privileges on specific columns rather than entire tables?
+    \answer{Yes. GRANT SELECT (col1, col2) ON table TO user. User can only access specified columns.}
+    
+    \item What is \texttt{PUBLIC} in the context of grants? What are the risks?
+    \answer{PUBLIC is implicit role including all users. GRANT TO PUBLIC gives access to everyone, including future users. Security risk for sensitive data.}
+    
+    \item How do you revoke only the \texttt{WITH GRANT OPTION} without revoking the privilege itself?
+    \answer{REVOKE GRANT OPTION FOR SELECT ON table FROM user. User keeps SELECT but can't grant it to others.}
+    
+    \item What privileges are needed to execute a stored procedure?
+    \answer{EXECUTE privilege on the procedure. May also need privileges on objects accessed within procedure, depending on SECURITY DEFINER/INVOKER.}
+    
+    \item Can you grant \texttt{SELECT} on a view without granting access to underlying tables?
+    \answer{Yes. View acts as security layer. Grant SELECT on view, not on base tables. User sees only what view exposes.}
+    
+    \item User A grants SELECT to User B WITH GRANT OPTION. B grants to C. You revoke from B. What happens to C's access?
+    \answer{With CASCADE (default): C loses access too. With RESTRICT: Revoke fails because C depends on B's grant.}
+\end{enumerate}
+
+\section{Subqueries}
+
+\begin{enumerate}[resume, label=\textbf{Q\arabic*.}]
+    \item What is the difference between a correlated and non-correlated subquery? Which is typically faster and why?
+    \answer{Non-correlated: independent, runs once. Correlated: references outer query, runs per outer row. Non-correlated faster due to single execution.}
+    
+    \item When must a subquery return exactly one value (scalar subquery)?
+    \answer{When used in SELECT list, in comparison (=, <, >), in SET clause of UPDATE. Multi-row result causes error.}
+    
+    \item What is the difference between \texttt{IN} and \texttt{EXISTS}? When would you prefer one over the other?
+    \answer{IN: checks value membership in list. EXISTS: checks if subquery returns any rows. EXISTS better for large subquery results, stops at first match.}
+    
+    \item Can a subquery reference columns from the outer query? What is this called?
+    \answer{Yes. Called correlated subquery. Inner query depends on outer query values, re-evaluated for each outer row.}
+    
+    \item What happens if a subquery in a \texttt{WHERE column = (subquery)} returns multiple rows?
+    \answer{Error. Scalar comparison requires single value. Use IN, ANY, or ALL for multiple values.}
+    
+    \item Can you use a subquery in the \texttt{FROM} clause? What is this called?
+    \answer{Yes. Called derived table or inline view. Must have alias: SELECT * FROM (SELECT ...) AS alias.}
+    
+    \item How does \texttt{NOT IN} behave when the subquery result contains NULL values?
+    \answer{Returns no rows if NULL present. x NOT IN (1, NULL) is UNKNOWN for any x. Use NOT EXISTS instead to avoid this.}
+    
+    \item Can you use aggregate functions in a subquery? Can the outer query reference the alias of that aggregate?
+    \answer{Yes, aggregates work in subquery. No, outer can't reference inner aliases directly. Return aggregate as column, reference via derived table.}
+    
+    \item What is the difference between \texttt{ANY} and \texttt{ALL} with subqueries?
+    \answer{ANY: true if condition holds for at least one value. ALL: true if condition holds for every value. x > ANY(1,2,3): x>1. x > ALL(1,2,3): x>3.}
+    
+    \item Can you use \texttt{ORDER BY} in a subquery? When would you need to?
+    \answer{Yes, but usually meaningless unless with LIMIT. Subquery in FROM can use ORDER BY with LIMIT to get top N before joining.}
+    
+    \item Can a subquery in \texttt{SELECT} return multiple columns?
+    \answer{No. SELECT list subquery must return single value. Use JOIN or derived table for multiple columns.}
+    
+    \item How do you rewrite a correlated subquery as a join? Is it always possible?
+    \answer{Often possible using JOIN with same condition. WHERE EXISTS (SELECT 1 FROM b WHERE b.x=a.x) becomes JOIN b ON b.x=a.x. Not always cleaner.}
+    
+    \item What happens if \texttt{EXISTS (SELECT NULL)}? Does it return true or false?
+    \answer{Returns TRUE. EXISTS checks if any row exists, not the value. SELECT NULL still returns a row, so EXISTS is true.}
+    
+    \item Can you use \texttt{LIMIT} inside a subquery?
+    \answer{Yes. Useful for getting top N in derived table: SELECT * FROM (SELECT * FROM t ORDER BY x LIMIT 5) sub.}
+    
+    \item What is a common table expression (CTE)? How is it different from a subquery?
+    \answer{CTE: WITH name AS (query) SELECT ... Named, reusable in same statement. Subquery: inline, can't reference multiple times. CTE more readable.}
+    
+    \item Write a query to find employees who earn more than the average salary of their own department.
+    \answer{SELECT * FROM employees e WHERE salary > (SELECT AVG(salary) FROM employees WHERE dept\_id = e.dept\_id). Correlated subquery.}
+    
+    \item What's wrong with: SELECT * FROM employees WHERE dept\_id NOT IN (SELECT dept\_id FROM departments WHERE budget IS NULL)?
+    \answer{If any dept\_id in subquery is NULL, NOT IN returns no rows. NULL in the list makes all comparisons UNKNOWN.}
+    
+    \item Rewrite using CTE: SELECT * FROM employees WHERE salary > (SELECT AVG(salary) FROM employees).
+    \answer{WITH avg\_sal AS (SELECT AVG(salary) as avg FROM employees) SELECT * FROM employees, avg\_sal WHERE salary > avg\_sal.avg.}
+\end{enumerate}
+
+\section{String Functions}
+
+\begin{enumerate}[resume, label=\textbf{Q\arabic*.}]
+    \item What does \texttt{SUBSTRING(\texttt{'Hello'}, 2, 3)} return? Are indices 0-based or 1-based?
+    \answer{Returns \texttt{'ell'}. SQL strings are 1-based. Position 2 = \texttt{'e'}, length 3 = \texttt{'ell'}.}
+    
+    \item What is the difference between \texttt{CHAR\_LENGTH()} and \texttt{LENGTH()} for multibyte characters?
+    \answer{CHAR\_LENGTH: counts characters. LENGTH: counts bytes. For UTF-8 multibyte char, CHAR\_LENGTH=1 but LENGTH may be 2-4 bytes.}
+    
+    \item How does the \texttt{LIKE} pattern \texttt{'\%\_\%'} differ from \texttt{'\%\%'}?
+    \answer{'\%\_\%' requires at least one character (underscore matches exactly one). \texttt{'\%\%'} matches anything including empty string.}
+    
+    \item What happens if you concatenate a string with NULL using \texttt{CONCAT()} vs the \texttt{||} operator?
+    \answer{CONCAT ignores NULL: CONCAT(\texttt{'a'},NULL,\texttt{'b'})=\texttt{'ab'}. || propagates NULL: \texttt{'a'}||NULL||\texttt{'b'}=NULL. Use COALESCE with || for safety.}
+    
+    \item What does \texttt{TRIM()} do by default? How do you trim only leading or only trailing spaces?
+    \answer{Default: removes both leading and trailing spaces. TRIM(LEADING FROM str), TRIM(TRAILING FROM str), or LTRIM/RTRIM functions.}
+    
+    \item What is the difference between \texttt{UPPER()} and \texttt{INITCAP()}?
+    \answer{UPPER: all characters uppercase. INITCAP: first letter of each word uppercase, rest lowercase. \texttt{'heLLo wORLD'} -> \texttt{'Hello World'}.}
+    
+    \item How do you escape a literal \texttt{\%} or \texttt{\_} in a \texttt{LIKE} pattern?
+    \answer{Use ESCAPE clause: WHERE col LIKE \texttt{'100\textbackslash\%'} ESCAPE \texttt{'\textbackslash'}. Or use bracket in some DBs: [\%], [\_].}
+    
+    \item What does \texttt{POSITION(\texttt{'b'} IN \texttt{'abc'})} return? What if the substring is not found?
+    \answer{Returns 2 (1-based position). Returns 0 if not found, not NULL.}
+    
+    \item How do you pad a string to a fixed length? What functions are used?
+    \answer{LPAD(str, length, padchar): pad left. RPAD(str, length, padchar): pad right. LPAD(\texttt{'5'}, 3, \texttt{'0'}) = \texttt{'005'}.}
+    
+    \item What does \texttt{COALESCE(NULL, '', \texttt{'default'})} return? Why?
+    \answer{Returns '' (empty string). COALESCE returns first non-NULL. Empty string is not NULL, so it's returned.}
+    
+    \item Write a query to find names that start with \texttt{'A'} and end with \texttt{'n'}.
+    \answer{SELECT name FROM employees WHERE name LIKE \texttt{'A\%n'}. \% matches any characters between A and n.}
+    
+    \item How do you extract the domain from an email address \texttt{'user@domain.com'}?
+    \answer{SELECT SUBSTRING(email FROM POSITION(\texttt{'@'} IN email) + 1). Or: SPLIT\_PART(email, \texttt{'@'}, 2) in PostgreSQL.}
+    
+    \item What does \texttt{LIKE \texttt{'\_\_\_'}} match? How is it different from \texttt{LIKE \texttt{'\%'}}?
+    \answer{'\_ \_ \_\texttt{' matches exactly 3 characters. '}\%\texttt{' matches zero or more characters. '}\_ \_ \_' won't match \texttt{'AB'} or \texttt{'ABCD'}.}
+    
+    \item Write a pattern to match strings that contain exactly one \texttt{'a'} anywhere.
+    \answer{Not directly possible with LIKE alone. Use: WHERE name LIKE \texttt{'\%a\%'} AND name NOT LIKE \texttt{'\%a\%a\%'}. Or use regexp.}
+    
+    \item What does \texttt{LIKE \texttt{'a\%b\%c'}} match? Give examples of matching and non-matching strings.
+    \answer{Matches strings starting with \texttt{'a'}, containing \texttt{'b'} later, ending with \texttt{'c'} after that. \texttt{'abc'}, \texttt{'aXbYc'} match. \texttt{'ab'}, \texttt{'bac'}, \texttt{'acb'} don't match.}
+    
+    \item How do you match a literal underscore character in a LIKE pattern?
+    \answer{Use ESCAPE: WHERE col LIKE \texttt{'\%\textbackslash\_\%'} ESCAPE \texttt{'\textbackslash'}. The backslash makes \_ literal, not wildcard.}
+    
+    \item What is the difference between \texttt{LIKE \texttt{'abc'}} and \texttt{= \texttt{'abc'}}?
+    \answer{Functionally same when no wildcards. LIKE may be slower (pattern matching). = is direct comparison. Use = when exact match needed.}
+    
+    \item Write a query to find products whose code is exactly 5 characters and starts with \texttt{'P'}.
+    \answer{SELECT * FROM products WHERE code LIKE \texttt{'P\_ \_ \_ \_'}. P followed by exactly 4 underscores = 5 chars total starting with P.}
+    
+    \item How does LIKE handle case sensitivity? How do you make it case-insensitive?
+    \answer{LIKE is case-sensitive by default. Use ILIKE (PostgreSQL) for case-insensitive. Or: WHERE LOWER(col) LIKE LOWER(\texttt{'Pattern'}).}
+    
+    \item Write a pattern to match phone numbers in format XXX-XXX-XXXX.
+    \answer{WHERE phone LIKE \texttt{'\_ \_ \_-\_ \_ \_-\_ \_ \_ \_'}. Three chars, dash, three chars, dash, four chars. Won't validate digits only.}
+    
+    \item What does \texttt{LIKE \texttt{'\%'}} match? Does it match NULL? Does it match empty string?
+    \answer{Matches any string including empty string. Does NOT match NULL (nothing equals NULL). Empty string matches.}
+    
+    \item How do you find names that do NOT start with a vowel?
+    \answer{WHERE name NOT LIKE \texttt{'A\%'} AND name NOT LIKE \texttt{'E\%'} AND name NOT LIKE \texttt{'I\%'} AND name NOT LIKE \texttt{'O\%'} AND name NOT LIKE \texttt{'U\%'}. Or use regexp.}
+    
+    \item What is the result of \texttt{REPLACE(\texttt{'hello'}, \texttt{'l'}, \texttt{'L'})}? Does it replace all occurrences?
+    \answer{Returns \texttt{'heLLo'}. Yes, REPLACE replaces all occurrences, not just first.}
+    
+    \item How do you reverse a string in PostgreSQL?
+    \answer{REVERSE(\texttt{'hello'}) returns \texttt{'olleh'}. Built-in function in PostgreSQL.}
+    
+    \item What does \texttt{REPEAT(\texttt{'ab'}, 3)} return?
+    \answer{Returns \texttt{'ababab'}. Repeats the string 3 times.}
+    
+    \item How do you find the position of the second occurrence of \texttt{'a'} in a string?
+    \answer{POSITION(\texttt{'a'} IN SUBSTRING(str FROM POSITION(\texttt{'a'} IN str) + 1)) + POSITION(\texttt{'a'} IN str). Find first, search from after it.}
+    
+    \item What is the difference between \texttt{LPAD(\texttt{'5'}, 3, \texttt{'0'})} and \texttt{RPAD(\texttt{'5'}, 3, \texttt{'0'})}?
+    \answer{LPAD: pads left, returns \texttt{'005'}. RPAD: pads right, returns \texttt{'500'}. Both make string 3 chars long.}
+    
+    \item How do you extract the file extension from \texttt{'document.pdf'}?
+    \answer{SUBSTRING(filename FROM POSITION(\texttt{'.'} IN filename) + 1). Or: SPLIT\_PART(filename, \texttt{'.'}, 2). Returns \texttt{'pdf'}.}
+    
+    \item What does \texttt{LEFT(\texttt{'PostgreSQL'}, 4)} return? What about \texttt{RIGHT(\texttt{'PostgreSQL'}, 3)}?
+    \answer{LEFT returns \texttt{'Post'} (first 4 chars). RIGHT returns \texttt{'SQL'} (last 3 chars).}
+\end{enumerate}
+
+\section{Date Functions}
+
+\begin{enumerate}[resume, label=\textbf{Q\arabic*.}]
+    \item How do you extract the month from a date column? What does it return (number or name)?
+    \answer{EXTRACT(MONTH FROM date) returns number (1-12). Use TO\_CHAR(date, \texttt{'Month'}) for name.}
+    
+    \item What is the result type of subtracting two dates?
+    \answer{PostgreSQL: interval type showing days/time difference. Some DBs return integer (days).}
+    
+    \item How do you add 3 months to a date? What happens if the resulting day doesn't exist (e.g., Jan 31 + 1 month)?
+    \answer{date + INTERVAL \texttt{'3 months'}. Jan 31 + 1 month = Feb 28/29 (last day of month). Overflow handled by capping to month end.}
+    
+    \item What is the difference between \texttt{CURRENT\_DATE}, \texttt{CURRENT\_TIMESTAMP}, and \texttt{NOW()}?
+    \answer{CURRENT\_DATE: date only (no time). CURRENT\_TIMESTAMP/NOW(): date and time. NOW() is PostgreSQL function, CURRENT\_TIMESTAMP is standard.}
+    
+    \item How do you find all records from the last 30 days?
+    \answer{WHERE date\_column >= CURRENT\_DATE - INTERVAL \texttt{'30 days'}. Or: >= NOW() - INTERVAL \texttt{'30 days'} for timestamp.}
+    
+    \item What is the difference between \texttt{DATE} and \texttt{TIMESTAMP} data types?
+    \answer{DATE: year, month, day only. TIMESTAMP: includes hours, minutes, seconds, fractional seconds. TIMESTAMP uses more storage.}
+    
+    \item What does \texttt{AGE(date1, date2)} return in PostgreSQL?
+    \answer{Returns interval showing difference in years, months, days. AGE(\texttt{'2024-01-15'}, \texttt{'2020-06-10'}) = \texttt{'3 years 7 mons 5 days'}.}
+    
+    \item How do you get the day of the week from a date? What format is returned?
+    \answer{EXTRACT(DOW FROM date): 0-6 (Sunday=0). EXTRACT(ISODOW FROM date): 1-7 (Monday=1). TO\_CHAR(date,\texttt{'Day'}) for name.}
+    
+    \item What is an interval? How do you add an interval to a date?
+    \answer{Interval: duration of time (days, hours, etc.). Add with +: date + INTERVAL \texttt{'1 year 2 months'}. Result is new date/timestamp.}
+    
+    \item How do you calculate the number of days between two dates?
+    \answer{date1 - date2 gives interval. EXTRACT(DAY FROM (date1 - date2)) or cast to integer: (date1 - date2)::integer in PostgreSQL.}
+    
+    \item Write a query to find employees hired in the current month of any year.
+    \answer{SELECT * FROM employees WHERE EXTRACT(MONTH FROM hire\_date) = EXTRACT(MONTH FROM CURRENT\_DATE).}
+    
+    \item How do you find the first day of the current month?
+    \answer{DATE\_TRUNC(\texttt{'month'}, CURRENT\_DATE) or CURRENT\_DATE - INTERVAL \texttt{'1 day'} * (EXTRACT(DAY FROM CURRENT\_DATE) - 1).}
+\end{enumerate}
+
+\section{Set Operations}
+
+\begin{enumerate}[resume, label=\textbf{Q\arabic*.}]
+    \item What is the difference between \texttt{UNION} and \texttt{UNION ALL}?
+    \answer{UNION removes duplicates (slower, sorts). UNION ALL keeps all rows including duplicates (faster). Use UNION ALL when duplicates OK.}
+    
+    \item What conditions must two queries satisfy to be combined with \texttt{UNION}?
+    \answer{Same number of columns. Compatible data types in corresponding positions. Column names from first query used in result.}
+    
+    \item How do \texttt{INTERSECT} and \texttt{EXCEPT} handle duplicate rows?
+    \answer{Both remove duplicates by default. INTERSECT: rows in both queries. EXCEPT: rows in first but not second. Use ALL variant to keep duplicates.}
+    
+    \item What is the precedence of set operations? How do you control evaluation order?
+    \answer{INTERSECT has higher precedence than UNION/EXCEPT. Use parentheses to control: (A UNION B) INTERSECT C differs from A UNION (B INTERSECT C).}
+    
+    \item How do set operations handle NULL values when determining duplicates?
+    \answer{Two NULLs are considered equal for duplicate elimination. Unlike comparisons, NULL=NULL is true for UNION/INTERSECT/EXCEPT.}
+    
+    \item Can you use \texttt{ORDER BY} with set operations? Where does it go?
+    \answer{Yes, at the end of entire statement, applies to final result: SELECT ... UNION SELECT ... ORDER BY column.}
+    
+    \item What column names appear in the result of a \texttt{UNION}?
+    \answer{Column names from first SELECT query are used in the result set.}
+    
+    \item Can you combine more than two queries with set operations?
+    \answer{Yes. A UNION B UNION C. Evaluated left to right unless parentheses change order.}
+    
+    \item What is the difference between \texttt{EXCEPT} and \texttt{NOT IN}?
+    \answer{EXCEPT: set operation, removes duplicates, handles NULL properly. NOT IN: filters, keeps duplicates, fails with NULL in subquery.}
+    
+    \item Can the queries in a \texttt{UNION} have different column data types?
+    \answer{Types must be compatible. DB attempts implicit conversion. INT and BIGINT OK. VARCHAR and INT may fail or give unexpected results.}
+    
+    \item Write a query to find customers who placed orders in 2023 but NOT in 2024.
+    \answer{SELECT customer\_id FROM orders WHERE EXTRACT(YEAR FROM order\_date)=2023 EXCEPT SELECT customer\_id FROM orders WHERE EXTRACT(YEAR FROM order\_date)=2024.}
+    
+    \item How do you find values that exist in both tables A and B?
+    \answer{SELECT col FROM A INTERSECT SELECT col FROM B. Returns only values present in both result sets.}
+    
+    \item What happens if you use UNION on queries with different column names but same types?
+    \answer{Works fine. Result uses column names from first query. Data types must be compatible, names don't need to match.}
+    
+    \item Can you use WHERE clause in each query of a UNION? What about ORDER BY?
+    \answer{WHERE: yes, each SELECT can have its own WHERE. ORDER BY: only at end, applies to final combined result.}
+    
+    \item How do you combine employees and contractors into one list, keeping duplicates?
+    \answer{SELECT name, \texttt{'employee'} as type FROM employees UNION ALL SELECT name, \texttt{'contractor'} FROM contractors. UNION ALL keeps all rows.}
+    
+    \item Write a query to find products that are either out of stock OR discontinued.
+    \answer{SELECT product\_id FROM inventory WHERE quantity = 0 UNION SELECT product\_id FROM products WHERE discontinued = true.}
+    
+    \item What is the difference between EXCEPT and MINUS?
+    \answer{Same operation, different names. EXCEPT is standard SQL (PostgreSQL). MINUS is Oracle syntax. Both return rows in first query but not second.}
+    
+    \item Can you use LIMIT with set operations? Where does it go?
+    \answer{Yes, at end after all set operations. SELECT ... UNION SELECT ... LIMIT 10. Limits final combined result.}
+    
+    \item How do you find departments that have no employees using set operations?
+    \answer{SELECT id FROM departments EXCEPT SELECT DISTINCT dept\_id FROM employees. Returns dept IDs with no matching employees.}
+    
+    \item What is the result of: SELECT 1 UNION SELECT 1 UNION ALL SELECT 1?
+    \answer{Returns two rows: 1 and 1. First UNION removes duplicate, then UNION ALL adds another 1. Order matters.}
+\end{enumerate}
+
+\section{NULL Handling}
+
+\begin{enumerate}[resume, label=\textbf{Q\arabic*.}]
+    \item What is the result of \texttt{NULL = NULL}? How do you correctly check for NULL?
+    \answer{NULL = NULL is UNKNOWN (not TRUE). Use IS NULL or IS NOT NULL to check for NULL values.}
+    
+    \item What does \texttt{COALESCE(a, b, c)} return if \texttt{a} is NULL but \texttt{b} is not?
+    \answer{Returns b. COALESCE returns first non-NULL argument from left to right.}
+    
+    \item How does \texttt{ORDER BY} handle NULL values? Is it consistent across databases?
+    \answer{PostgreSQL: NULLs last in ASC, first in DESC. MySQL: NULLs first in ASC. Use NULLS FIRST/LAST to control explicitly.}
+    
+    \item What is the result of \texttt{NULL + 5}? What about \texttt{NULL || \texttt{'text'}}?
+    \answer{Both return NULL. Any arithmetic or concatenation with NULL produces NULL (NULL propagates).}
+    
+    \item How do you sort NULLs first or last explicitly?
+    \answer{ORDER BY column ASC NULLS FIRST, or ORDER BY column DESC NULLS LAST. Explicit control over NULL position.}
+    
+    \item What is the result of \texttt{NOT NULL}?
+    \answer{Returns NULL. NOT of unknown value is unknown. NOT NULL = NULL.}
+    
+    \item How does \texttt{DISTINCT} treat multiple NULL values?
+    \answer{All NULLs are grouped together as one distinct value. SELECT DISTINCT returns only one NULL.}
+    
+    \item What is the result of \texttt{NULL IN (1, 2, NULL)}?
+    \answer{Returns UNKNOWN (NULL). Can't determine if NULL equals 1, 2, or the NULL in the list.}
+    
+    \item How do you replace NULL with a default value in the result?
+    \answer{COALESCE(column, \texttt{'default'}) or CASE WHEN column IS NULL THEN \texttt{'default'} ELSE column END.}
+    
+    \item What is the result of: WHERE NOT (salary > 50000) when salary is NULL?
+    \answer{Row excluded. salary > 50000 is UNKNOWN, NOT UNKNOWN is UNKNOWN, WHERE filters out UNKNOWN.}
+    
+    \item How do you check if two columns are equal, treating NULLs as equal?
+    \answer{WHERE (a = b) OR (a IS NULL AND b IS NULL). Or use IS NOT DISTINCT FROM in PostgreSQL: a IS NOT DISTINCT FROM b.}
+\end{enumerate}
+
+\section{PL/SQL / PL/pgSQL}
+
+\begin{enumerate}[resume, label=\textbf{Q\arabic*.}]
+    \item What is the difference between \texttt{DECLARE}, \texttt{BEGIN}, and \texttt{END} blocks?
+    \answer{DECLARE: variable declarations section. BEGIN...END: executable code block. Structure: DECLARE vars; BEGIN code; END;.}
+    
+    \item What happens if a \texttt{SELECT INTO} returns no rows? What about multiple rows?
+    \answer{No rows: NO\_DATA\_FOUND exception (or FOUND=false). Multiple rows: TOO\_MANY\_ROWS exception. Use LIMIT 1 or handle exceptions.}
+    
+    \item How do you handle exceptions in PL/pgSQL? What is the syntax?
+    \answer{BEGIN ... EXCEPTION WHEN condition THEN handler; END. Example: EXCEPTION WHEN NO\_DATA\_FOUND THEN RAISE NOTICE \texttt{'Not found'}.}
+    
+    \item What is the scope of a variable declared inside a nested block?
+    \answer{Visible only within that block and its nested blocks. Outer block cannot access inner block's variables.}
+    
+    \item What is the difference between \texttt{LOOP}, \texttt{WHILE}, and \texttt{FOR} loops?
+    \answer{LOOP: infinite until EXIT. WHILE: condition checked before each iteration. FOR: iterates over range or query result, counter automatic.}
+    
+    \item How do you exit a loop early? What is the syntax?
+    \answer{EXIT; exits innermost loop. EXIT WHEN condition; exits when condition true. EXIT label; exits named outer loop.}
+    
+    \item How do you raise a custom error/exception?
+    \answer{RAISE EXCEPTION \texttt{'Error message \%'}, variable; Stops execution and returns error to caller.}
+    
+    \item What is the difference between \texttt{RAISE NOTICE} and \texttt{RAISE EXCEPTION}?
+    \answer{NOTICE: informational message, execution continues. EXCEPTION: error, stops execution and rolls back transaction.}
+    
+    \item Can you have nested blocks? What happens to variables in nested blocks?
+    \answer{Yes. Inner block can access outer variables. Inner block can declare same-name variable, shadows outer. Changes to outer vars persist.}
+    
+    \item What is \texttt{FOUND} in PL/pgSQL? When is it useful?
+    \answer{Boolean set by SQL statements. True if last SELECT INTO/UPDATE/DELETE affected rows. Check after statement: IF NOT FOUND THEN...}
+    
+    \item Write a PL/pgSQL block that doubles all salaries under 30000 and returns the count of updated rows.
+    \answer{DO \$\$ DECLARE cnt INT; BEGIN UPDATE employees SET salary=salary*2 WHERE salary<30000; GET DIAGNOSTICS cnt = ROW\_COUNT; RAISE NOTICE \texttt{'Updated \%'}, cnt; END \$\$.}
+    
+    \item What happens if you don't handle an exception in PL/pgSQL?
+    \answer{Exception propagates to caller. If uncaught, transaction aborts and rolls back. Error message returned to client.}
+\end{enumerate}
+
+\section{Functions}
+
+\begin{enumerate}[resume, label=\textbf{Q\arabic*.}]
+    \item What is the difference between \texttt{RETURNS} and \texttt{RETURN} in a function definition?
+    \answer{RETURNS: declares return type in function signature. RETURN: statement inside function body that returns value.}
+    
+    \item Can a function return multiple values? How?
+    \answer{Yes. Use OUT parameters, RETURNS TABLE, or RETURNS SETOF. Multiple OUT params become record. TABLE/SETOF return multiple rows.}
+    
+    \item Can a function modify data (INSERT, UPDATE, DELETE)? Should it?
+    \answer{Yes, possible. Generally discouraged; use procedures for data modification. Functions should compute/return values. Side effects reduce clarity.}
+    
+    \item What happens if a function does not execute a \texttt{RETURN} statement?
+    \answer{Error at runtime: "control reached end of function without RETURN". All code paths must return a value.}
+    
+    \item How do you call a function that returns a table/set of rows?
+    \answer{SELECT * FROM function\_name(). Or in FROM clause: SELECT col FROM table, function\_name() f WHERE...}
+    
+    \item What is \texttt{RETURNS SETOF} vs \texttt{RETURNS TABLE}?
+    \answer{SETOF typename: returns multiple rows of existing type. TABLE(col1 type1, col2 type2): defines inline return structure. TABLE more flexible.}
+    
+    \item Can a function have default parameter values?
+    \answer{Yes. CREATE FUNCTION f(a INT DEFAULT 10). Call without arg uses default: f() uses a=10.}
+    
+    \item Can you call a function inside a \texttt{CHECK} constraint?
+    \answer{Limited. Only IMMUTABLE functions allowed in CHECK. Function must not access database or have side effects.}
+    
+    \item What is \texttt{LANGUAGE SQL} vs \texttt{LANGUAGE plpgsql}?
+    \answer{SQL: simple SQL statements, inlined by optimizer, no variables/control flow. plpgsql: full procedural language, variables, loops, conditions.}
+    
+    \item Write a function that returns the full name by concatenating first\_name and last\_name with a space.
+    \answer{CREATE FUNCTION full\_name(f TEXT, l TEXT) RETURNS TEXT AS \$\$ SELECT f || \texttt{' '} || l; \$\$ LANGUAGE SQL.}
+    
+    \item What is the difference between SECURITY DEFINER and SECURITY INVOKER functions?
+    \answer{DEFINER: runs with privileges of function creator. INVOKER: runs with privileges of caller. DEFINER can allow controlled access to data.}
+\end{enumerate}
+
+\section{Procedures}
+
+\begin{enumerate}[resume, label=\textbf{Q\arabic*.}]
+    \item What is the difference between a function and a procedure?
+    \answer{Function: returns value, callable in expressions/SELECT. Procedure: no return value, called with CALL, can control transactions (COMMIT/ROLLBACK).}
+    
+    \item Explain \texttt{IN}, \texttt{OUT}, and \texttt{INOUT} parameters with examples.
+    \answer{IN: input only (default). OUT: output only, set inside procedure. INOUT: input and output, initial value passed, modified value returned.}
+    
+    \item Can a procedure return a value? How is it different from a function's return?
+    \answer{Procedure uses OUT parameters, not RETURN statement. Caller accesses OUT values. Function uses RETURN for single value in expressions.}
+    
+    \item How do you call a procedure? Can you call it in a \texttt{SELECT} statement?
+    \answer{CALL procedure\_name(args). Cannot use in SELECT. Procedures are statements, not expressions.}
+    
+    \item Can a procedure call another procedure? Can it call itself (recursion)?
+    \answer{Yes to both. CALL other\_procedure() inside procedure. Recursion works with proper exit condition.}
+    
+    \item Can a procedure contain transaction control statements (\texttt{COMMIT}, \texttt{ROLLBACK})?
+    \answer{Yes, procedures can COMMIT/ROLLBACK. Functions cannot. This is key difference. Allows multi-statement transactions in procedures.}
+    
+    \item What happens if an error occurs inside a procedure?
+    \answer{Depends on exception handling. Without handler: procedure aborts, transaction rolled back, error raised to caller.}
+    
+    \item Can you have multiple \texttt{OUT} parameters in a procedure?
+    \answer{Yes. CREATE PROCEDURE p(OUT x INT, OUT y INT). Both values set inside and accessible to caller after CALL.}
+    
+    \item How do you get the value of an \texttt{OUT} parameter after calling a procedure?
+    \answer{CALL procedure(input\_val, output\_var). After call, output\_var contains the OUT value. In psql: use DO block to capture.}
+    
+    \item What is the difference between \texttt{CALL procedure()} and \texttt{SELECT procedure()}?
+    \answer{CALL: correct way to invoke procedure. SELECT: used for functions. Procedures cannot be called with SELECT.}
+    
+    \item Write a procedure that transfers amount from one account to another, with proper error handling.
+    \answer{CREATE PROCEDURE transfer(from\_id INT, to\_id INT, amt DECIMAL) AS \$\$ BEGIN UPDATE accounts SET balance=balance-amt WHERE id=from\_id; UPDATE accounts SET balance=balance+amt WHERE id=to\_id; END \$\$ LANGUAGE plpgsql.}
+\end{enumerate}
+
+\section{JDBC}
+
+\begin{enumerate}[resume, label=\textbf{Q\arabic*.}]
+    \item What is the difference between \texttt{Statement} and \texttt{PreparedStatement}?
+    \answer{Statement: SQL string concatenated, parsed each time. PreparedStatement: parameterized, precompiled, prevents SQL injection, better performance for repeated queries.}
+    
+    \item Why is \texttt{PreparedStatement} preferred for queries with user input? Explain SQL injection.
+    \answer{Parameters bound separately, not concatenated. SQL injection: malicious input like \texttt{'; DROP TABLE--} executes as SQL. PreparedStatement treats it as data, not code.}
+    
+    \item What does \texttt{ResultSet.next()} return? What happens if you call it when there are no more rows?
+    \answer{Returns true if next row exists and cursor moved. Returns false when no more rows. Cursor starts before first row.}
+    
+    \item What is the purpose of \texttt{Connection.setAutoCommit(false)}?
+    \answer{Disables auto-commit after each statement. Enables manual transaction control. Must explicitly call commit() or rollback().}
+    
+    \item What happens if you don't close a \texttt{ResultSet} or \texttt{Connection}? What is resource leaking?
+    \answer{Resource leak: database connections, cursors remain open. Exhausts connection pool, database resources. Eventually causes failures. Always close in finally or try-with-resources.}
+    
+    \item Can you execute multiple SQL statements with a single \texttt{Statement} object?
+    \answer{Yes, reuse Statement for multiple executeQuery/executeUpdate calls. But only one active ResultSet per Statement. Close ResultSet before next query.}
+    
+    \item What is the difference between \texttt{executeQuery()}, \texttt{executeUpdate()}, and \texttt{execute()}?
+    \answer{executeQuery: SELECT, returns ResultSet. executeUpdate: INSERT/UPDATE/DELETE, returns affected row count. execute: any SQL, returns boolean (true if ResultSet).}
+    
+    \item What does \texttt{Class.forName("driver.class")} do? Is it still needed?
+    \answer{Loads JDBC driver class, triggers static initializer that registers driver. JDBC 4.0+: automatic via ServiceLoader, not needed.}
+    
+    \item How do you handle transactions in JDBC? What methods are involved?
+    \answer{setAutoCommit(false), execute statements, commit() on success, rollback() on error. Wrap in try-catch, rollback in catch block.}
+    
+    \item User enters: \texttt{' OR '1'='1}. How does this become SQL injection with Statement? How does PreparedStatement prevent it?
+    \answer{Statement: SELECT * FROM users WHERE name='' OR \texttt{'1'}=\texttt{'1'} returns all rows. PreparedStatement: treats entire input as literal string value, not SQL code.}
+    
+    \item Write JDBC code to get count of employees with salary > 50000 using PreparedStatement.
+    \answer{PreparedStatement ps = conn.prepareStatement("SELECT COUNT(*) FROM employees WHERE salary > ?"); ps.setInt(1, 50000); ResultSet rs = ps.executeQuery(); rs.next(); int count = rs.getInt(1).}
+\end{enumerate}
+
+\section{Entity-Relationship Diagrams (ERD)}
+
+\begin{enumerate}[resume, label=\textbf{Q\arabic*.}]
+    \item What is the difference between an entity and an attribute? When should something be an entity vs. an attribute?
+    \answer{Entity: independent thing with identity (Student). Attribute: property of entity (name). Make entity if: has own attributes, involved in relationships, multiple values needed.}
+    
+    \item Explain 1:1, 1:N, and M:N cardinality with examples. How is M:N implemented in tables?
+    \answer{1:1: Person-Passport. 1:N: Department-Employees. M:N: Students-Courses. M:N needs junction table with FKs to both entities.}
+    
+    \item What is a weak entity? What is a partial key?
+    \answer{Weak entity: cannot be uniquely identified by own attributes, depends on owner entity. Partial key: attribute that's unique only within owner (Room number within Building).}
+    
+    \item What is a composite attribute? What is a multivalued attribute? How do you handle each in tables?
+    \answer{Composite: attribute with sub-parts (Address: street, city). Flatten to columns. Multivalued: multiple values (phone numbers). Separate table with FK.}
+    
+    \item What is total vs. partial participation in a relationship?
+    \answer{Total: every entity instance must participate (every employee MUST belong to dept). Partial: participation optional (employee MAY have projects).}
+    
+    \item What is a derived attribute? Should it be stored in the database?
+    \answer{Derived: calculated from other attributes (age from birthdate). Generally don't store; calculate when needed. Store if calculation expensive and data stable.}
+    
+    \item What is the difference between identifying and non-identifying relationships?
+    \answer{Identifying: child's PK includes parent's PK, child cannot exist without parent (OrderItem needs Order). Non-identifying: child has own PK, FK is not part of PK.}
+    
+    \item How do you represent recursive relationships in an ERD?
+    \answer{Entity related to itself. Line from entity back to itself. Example: Employee manages Employee. Implemented as self-referencing FK (manager\_id references employee\_id).}
+    
+    \item Convert this to tables: Student(sid, name) and Course(cid, title) with M:N relationship Enrolls(grade).
+    \answer{Three tables: Student(sid PK, name), Course(cid PK, title), Enrollment(sid FK, cid FK, grade, PK(sid,cid)). Junction table has composite PK.}
+    
+    \item A Room belongs to exactly one Building. Room 101 exists in multiple buildings. How do you model this?
+    \answer{Room is weak entity. PK is (building\_id, room\_number). room\_number is partial key, unique only within a building.}
+\end{enumerate}
+
+\section{Transactions and ACID}
+
+\begin{enumerate}[resume, label=\textbf{Q\arabic*.}]
+    \item What do ACID properties stand for? Explain each briefly.
+    \answer{Atomicity: all or nothing. Consistency: valid state to valid state. Isolation: concurrent transactions don't interfere. Durability: committed changes survive failures.}
+    
+    \item What is the difference between \texttt{COMMIT} and \texttt{ROLLBACK}?
+    \answer{COMMIT: makes transaction changes permanent. ROLLBACK: undoes all changes since transaction start. Transaction ends with either.}
+    
+    \item A transaction does INSERT, UPDATE, then fails on DELETE. What happens with ROLLBACK?
+    \answer{All three operations undone. Database returns to state before transaction started. Atomicity ensures all-or-nothing.}
+\end{enumerate}
+
+\section{Syntax Error Identification}
+
+\textit{For each SQL statement below, identify the specific error and explain how to fix it.}
+
+\begin{enumerate}[resume, label=\textbf{Q\arabic*.}]
+    \item \textbf{Find the error:} This query attempts to count employees per department but fails.
+    \begin{lstlisting}
+SELECT department, COUNT(*)
+FROM employees
+WHERE salary > 50000;
+    \end{lstlisting}
+    \answer{Error: Missing GROUP BY clause. When using COUNT(*) with a non-aggregated column (department), must add GROUP BY department.}
+    
+    \item \textbf{Find the error:} This query tries to filter by date range but has invalid syntax.
+    \begin{lstlisting}
+SELECT * FROM orders
+WHERE order_date BETWEEN '2024-01-01' AND;
+    \end{lstlisting}
+    \answer{Error: Incomplete BETWEEN clause. BETWEEN requires two values. Fix: BETWEEN \texttt{'2024-01-01'} AND \texttt{'2024-12-31'}.}
+    
+    \item \textbf{Find the error:} This query tries to find above-average salaries but uses aggregate incorrectly.
+    \begin{lstlisting}
+SELECT name, salary
+FROM employees
+WHERE salary > AVG(salary);
+    \end{lstlisting}
+    \answer{Error: Aggregate function AVG() in WHERE clause. WHERE executes before grouping. Fix: Use subquery: WHERE salary > (SELECT AVG(salary) FROM employees).}
+    
+    \item \textbf{Find the error:} This UPDATE uses a subquery that could return multiple values.
+    \begin{lstlisting}
+UPDATE employees
+SET department_id = (SELECT id FROM departments);
+    \end{lstlisting}
+    \answer{Error: Subquery returns multiple rows but scalar expected. Fix: Add WHERE to subquery to return single value, e.g., WHERE name = \texttt{'Sales'}.}
+    
+    \item \textbf{Find the error:} This query mixes DISTINCT with aggregation incorrectly.
+    \begin{lstlisting}
+SELECT DISTINCT department, COUNT(*)
+FROM employees
+GROUP BY department;
+    \end{lstlisting}
+    \answer{Error: DISTINCT is redundant with GROUP BY (groups are already unique). Not a syntax error but indicates misunderstanding. Remove DISTINCT.}
+    
+    \item \textbf{Find the error:} This query uses HAVING without proper grouping.
+    \begin{lstlisting}
+SELECT e.name, d.name
+FROM employees e, departments d
+WHERE e.dept_id = d.id
+HAVING COUNT(*) > 5;
+    \end{lstlisting}
+    \answer{Error: HAVING without GROUP BY. HAVING filters groups, but no groups defined. Fix: Add GROUP BY e.name, d.name or remove HAVING and use different logic.}
+    
+    \item \textbf{Find the error:} This multi-row INSERT has inconsistent value counts.
+    \begin{lstlisting}
+INSERT INTO employees (id, name, salary)
+VALUES (1, 'John', 50000),
+       (2, 'Jane');
+    \end{lstlisting}
+    \answer{Error: Second row has 2 values but 3 columns specified. All rows must have same column count. Fix: (2, \texttt{'Jane'}, 60000).}
+    
+    \item \textbf{Find the error:} This IN subquery returns wrong number of columns.
+    \begin{lstlisting}
+SELECT name FROM employees
+WHERE department_id IN 
+    (SELECT id, name FROM departments);
+    \end{lstlisting}
+    \answer{Error: IN subquery returns 2 columns but expects 1. Fix: Remove \texttt{'name'} from subquery: SELECT id FROM departments.}
+    
+    \item \textbf{Find the error:} This CREATE TABLE references a column that doesn't exist.
+    \begin{lstlisting}
+CREATE TABLE orders (
+    id INT PRIMARY KEY,
+    amount DECIMAL(10,2),
+    FOREIGN KEY (customer_id) REFERENCES customers(id)
+);
+    \end{lstlisting}
+    \answer{Error: customer\_id column not defined in table but referenced in FK. Fix: Add column definition: customer\_id INT before the FK constraint.}
+    
+    \item \textbf{Find two errors:} This query has multiple issues with aggregates and grouping.
+    \begin{lstlisting}
+SELECT name, MAX(salary)
+FROM employees
+WHERE MAX(salary) > 100000
+GROUP BY department;
+    \end{lstlisting}
+    \answer{Two errors: 1) MAX() in WHERE (use HAVING). 2) \texttt{'name'} not in GROUP BY. Fix: Add name to GROUP BY and change WHERE to HAVING MAX(salary) > 100000.}
+    
+    \item \textbf{Find the error:} This DELETE statement is missing a keyword.
+    \begin{lstlisting}
+DELETE employees
+WHERE hire_date < '2020-01-01';
+    \end{lstlisting}
+    \answer{Error: Missing FROM keyword. Correct syntax: DELETE FROM employees WHERE hire\_date < \texttt{'2020-01-01'}.}
+    
+    \item \textbf{Find the logic error:} This LEFT JOIN may not return expected results.
+    \begin{lstlisting}
+SELECT * FROM employees e
+LEFT JOIN departments d ON e.dept_id = d.id
+WHERE d.name = 'Sales' OR d.name IS NULL;
+    \end{lstlisting}
+    \answer{Logic error: WHERE d.name = \texttt{'Sales'} filters out unmatched rows first, then OR d.name IS NULL brings back employees with no dept. Ambiguous intent. Move \texttt{'Sales'} condition to ON clause if you want all employees plus dept info.}
+    
+    \item \textbf{Find the error:} This ORDER BY references a non-existent column position.
+    \begin{lstlisting}
+SELECT name, salary
+FROM employees
+ORDER BY 3;
+    \end{lstlisting}
+    \answer{Error: ORDER BY 3 references column position 3, but only 2 columns in SELECT. Fix: Use ORDER BY 1 or ORDER BY 2, or use column name.}
+    
+    \item \textbf{Find the error:} This HAVING clause references a non-aggregated column.
+    \begin{lstlisting}
+SELECT department_id, AVG(salary)
+FROM employees
+GROUP BY department_id
+HAVING salary > 50000;
+    \end{lstlisting}
+    \answer{Error: HAVING references \texttt{'salary'} which is neither in GROUP BY nor aggregated. Fix: HAVING AVG(salary) > 50000.}
+    
+    \item \textbf{Find the error:} This CREATE TABLE has a duplicate constraint.
+    \begin{lstlisting}
+CREATE TABLE test (
+    id INT PRIMARY KEY PRIMARY KEY
+);
+    \end{lstlisting}
+    \answer{Error: PRIMARY KEY specified twice. A table can have only one primary key. Fix: Remove one PRIMARY KEY keyword.}
+    
+    \item \textbf{Find the error:} This query compares with NULL incorrectly.
+    \begin{lstlisting}
+SELECT * FROM employees
+WHERE hire_date = NULL;
+    \end{lstlisting}
+    \answer{Error: Cannot use = with NULL (result is always UNKNOWN). Fix: Use IS NULL: WHERE hire\_date IS NULL.}
+    
+    \item \textbf{Find the potential runtime error:} This UPDATE's subquery could fail.
+    \begin{lstlisting}
+UPDATE employees
+SET salary = salary * 1.1
+WHERE department_id = 
+    (SELECT department_id FROM employees WHERE name = 'John');
+    \end{lstlisting}
+    \answer{Potential error: If multiple employees named \texttt{'John'} exist, subquery returns multiple rows causing error. Fix: Use IN instead of =, or add LIMIT 1, or use more specific WHERE.}
+    
+    \item \textbf{Find the error:} This UNION has mismatched column counts.
+    \begin{lstlisting}
+SELECT name, department
+FROM employees
+UNION
+SELECT name FROM contractors;
+    \end{lstlisting}
+    \answer{Error: First SELECT has 2 columns, second has 1. UNION requires same column count. Fix: Add second column to second query or remove from first.}
+    
+    \item \textbf{Find the potential issue:} This INSERT doesn't specify columns.
+    \begin{lstlisting}
+INSERT INTO employees
+VALUES (1, 'John', 50000, 'Sales');
+    \end{lstlisting}
+    \answer{Potential issue: No column list means values must match table column order exactly. If table structure changes, INSERT breaks. Also may have wrong number of values. Fix: Explicitly list columns.}
+    
+    \item \textbf{Find the error:} This scalar subquery could return multiple rows.
+    \begin{lstlisting}
+SELECT e.name, 
+       (SELECT d.name FROM departments d)
+FROM employees e;
+    \end{lstlisting}
+    \answer{Error: Subquery in SELECT must return single value, but this returns all department names. Fix: Add WHERE d.id = e.dept\_id to correlate with outer query.}
+    
+    \item \textbf{Find the incomplete syntax:} This FK reference is missing information.
+    \begin{lstlisting}
+ALTER TABLE employees
+ADD COLUMN manager_id INT REFERENCES employees;
+    \end{lstlisting}
+    \answer{Error: Missing column in REFERENCES. Should specify which column: REFERENCES employees(id). Without it, may fail or reference wrong column.}
+    
+    \item \textbf{Find the error:} This BETWEEN clause is incomplete.
+    \begin{lstlisting}
+SELECT name
+FROM employees
+WHERE salary BETWEEN 50000;
+    \end{lstlisting}
+    \answer{Error: BETWEEN requires two values with AND. Fix: WHERE salary BETWEEN 50000 AND 100000.}
+    
+    \item \textbf{Find the error:} This ORDER BY tries to aggregate an alias.
+    \begin{lstlisting}
+SELECT department, SUM(salary) as total
+FROM employees
+GROUP BY department
+ORDER BY SUM(total);
+    \end{lstlisting}
+    \answer{Error: SUM(total) tries to aggregate the alias \texttt{'total'} which is already a SUM. Fix: ORDER BY total or ORDER BY SUM(salary).}
+    
+    \item \textbf{Find the potential issue:} This view definition may not work in all databases.
+    \begin{lstlisting}
+CREATE VIEW emp_view AS
+SELECT * FROM employees
+ORDER BY salary DESC;
+    \end{lstlisting}
+    \answer{Potential issue: Standard SQL doesn't allow ORDER BY in views without LIMIT. Views represent unordered sets. ORDER BY may be ignored. Fix: Remove ORDER BY from view, apply in query.}
+    
+    \item \textbf{Debug this query:} Task: Find employees hired after 2020. Query returns 0 rows but table has data.
+    \begin{lstlisting}
+SELECT * FROM employees
+WHERE hire_date > 2020;
+    \end{lstlisting}
+    \answer{Error: Comparing date to integer 2020. Should compare to date string. Fix: WHERE hire\_date > \texttt{'2020-12-31'} or WHERE EXTRACT(YEAR FROM hire\_date) > 2020.}
+    
+    \item \textbf{Debug this query:} Task: Find names containing \texttt{'son'}. Query returns no results but \texttt{'Johnson'} exists.
+    \begin{lstlisting}
+SELECT * FROM employees
+WHERE name LIKE 'son';
+    \end{lstlisting}
+    \answer{Error: Missing wildcards. LIKE \texttt{'son'} matches exactly \texttt{'son'} only. Fix: WHERE name LIKE \texttt{'\%son\%'} to find \texttt{'son'} anywhere in name.}
+    
+    \item \textbf{Debug this query:} Task: Find employees with NULL department. Query returns empty.
+    \begin{lstlisting}
+SELECT * FROM employees
+WHERE department_id = NULL;
+    \end{lstlisting}
+    \answer{Error: Using = with NULL. NULL = NULL is UNKNOWN, not TRUE. Fix: WHERE department\_id IS NULL.}
+    
+    \item \textbf{Debug this query:} Task: Find employees NOT in department 5 or 10. Employees with NULL dept\_id are missing.
+    \begin{lstlisting}
+SELECT * FROM employees
+WHERE department_id NOT IN (5, 10);
+    \end{lstlisting}
+    \answer{Issue: NOT IN excludes NULLs. NULL NOT IN (...) is UNKNOWN. Fix: WHERE (department\_id NOT IN (5,10) OR department\_id IS NULL).}
+    
+    \item \textbf{Debug this query:} Task: Count employees per department. Shows wrong count for some departments.
+    \begin{lstlisting}
+SELECT d.name, COUNT(*)
+FROM departments d
+LEFT JOIN employees e ON d.id = e.dept_id
+GROUP BY d.name;
+    \end{lstlisting}
+    \answer{Issue: COUNT(*) counts 1 even for departments with no employees (the NULL row). Fix: COUNT(e.id) returns 0 for empty departments.}
+    
+    \item \textbf{Debug this query:} Task: Get second highest salary. Query sometimes returns wrong value.
+    \begin{lstlisting}
+SELECT MAX(salary)
+FROM employees
+WHERE salary < (SELECT MAX(salary) FROM employees);
+    \end{lstlisting}
+    \answer{Issue: If multiple employees have max salary, this still works. But if only 1 employee exists, returns NULL. Also fails with ties at second place. Consider DISTINCT or OFFSET/LIMIT.}
+    
+    \item \textbf{Debug this query:} Task: Find employees earning above average. Returns different results each run.
+    \begin{lstlisting}
+SELECT name FROM employees e1
+WHERE salary > (SELECT AVG(salary) FROM employees e2 
+                WHERE e2.dept_id = e1.dept_id);
+    \end{lstlisting}
+    \answer{Not an error - this compares to department average (correlated). If task wants overall average, remove WHERE clause from subquery.}
+    
+    \item \textbf{Debug this query:} Task: List all departments with their employee count, sorted by count descending.
+    \begin{lstlisting}
+SELECT department_id, COUNT(*) as cnt
+FROM employees
+GROUP BY department_id
+ORDER BY COUNT(*) DESC;
+    \end{lstlisting}
+    \answer{Missing departments with 0 employees. Fix: Start from departments table with LEFT JOIN: SELECT d.id, COUNT(e.id) FROM departments d LEFT JOIN employees e ON ...}
+    
+    \item \textbf{Debug this query:} Task: Find products priced between \$10 and \$50. Some \$10 and \$50 items missing.
+    \begin{lstlisting}
+SELECT * FROM products
+WHERE price > 10 AND price < 50;
+    \end{lstlisting}
+    \answer{Error: Using > and < excludes boundary values. Fix: WHERE price >= 10 AND price <= 50, or use BETWEEN 10 AND 50 (inclusive).}
+    
+    \item \textbf{Debug this query:} Task: Calculate average salary per department. Wrong average for some.
+    \begin{lstlisting}
+SELECT department_id, SUM(salary)/COUNT(*)
+FROM employees
+GROUP BY department_id;
+    \end{lstlisting}
+    \answer{Issue: If salary has NULLs, COUNT(*) counts all rows but SUM ignores NULLs, giving wrong average. Fix: Use AVG(salary) which handles NULLs correctly.}
+    
+    \item \textbf{Debug this query:} Task: Find duplicate emails. Query returns all rows, not just duplicates.
+    \begin{lstlisting}
+SELECT email, COUNT(*)
+FROM users
+GROUP BY email;
+    \end{lstlisting}
+    \answer{Missing HAVING clause. This returns all emails with their counts. Fix: Add HAVING COUNT(*) > 1 to filter only duplicates.}
+    
+    \item \textbf{Debug this query:} Task: Show employee and manager names. Employees without managers don't appear.
+    \begin{lstlisting}
+SELECT e.name, m.name as manager
+FROM employees e
+JOIN employees m ON e.manager_id = m.id;
+    \end{lstlisting}
+    \answer{Using INNER JOIN excludes employees with NULL manager\_id. Fix: Use LEFT JOIN to include employees without managers (manager shows as NULL).}
+    
+    \item \textbf{Debug this query:} Task: Find orders from last 7 days. Returns no rows but recent orders exist.
+    \begin{lstlisting}
+SELECT * FROM orders
+WHERE order_date > CURRENT_DATE - 7;
+    \end{lstlisting}
+    \answer{Issue: CURRENT\_DATE - 7 subtracts integer (days) which works in PostgreSQL. But if order\_date is TIMESTAMP, may miss same-day orders. Use INTERVAL \texttt{'7 days'} for clarity.}
+    
+    \item \textbf{Debug this query:} Task: Concatenate first and last name. Some results show NULL.
+    \begin{lstlisting}
+SELECT first_name || ' ' || last_name as full_name
+FROM employees;
+    \end{lstlisting}
+    \answer{Issue: || operator propagates NULL. If either name is NULL, result is NULL. Fix: COALESCE(first\_name,'') || \texttt{' '} || COALESCE(last\_name,''), or use CONCAT().}
+    
+    \item \textbf{Debug this query:} Task: Find the 3rd highest salary. Returns wrong value.
+    \begin{lstlisting}
+SELECT salary FROM employees
+ORDER BY salary DESC
+LIMIT 1 OFFSET 2;
+    \end{lstlisting}
+    \answer{Issue: If multiple employees have same salary, this may skip ranks. For true 3rd highest distinct salary: SELECT DISTINCT salary ... or use DENSE\_RANK().}
+    
+    \item \textbf{Debug this query:} Task: Update all prices by 10\%. Some prices unchanged.
+    \begin{lstlisting}
+UPDATE products
+SET price = price * 1.10
+WHERE category = 'Electronics';
+    \end{lstlisting}
+    \answer{Not a bug if intentional. But if task is ALL prices, the WHERE clause limits update. Remove WHERE to update all rows. Also NULL prices stay NULL.}
+    
+    \item \textbf{Debug this query:} Task: Find names starting with vowels (A,E,I,O,U). Missing lowercase matches.
+    \begin{lstlisting}
+SELECT name FROM employees
+WHERE name LIKE 'A%' OR name LIKE 'E%' 
+   OR name LIKE 'I%' OR name LIKE 'O%' 
+   OR name LIKE 'U%';
+    \end{lstlisting}
+    \answer{Issue: LIKE is case-sensitive. \texttt{'alice'} won't match \texttt{'A\%'}. Fix: Use ILIKE (PostgreSQL) or add lowercase patterns, or WHERE UPPER(name) LIKE \texttt{'A\%'} OR ...}
+\end{enumerate}
+
+\section{Misleading Queries (Looks Correct But Wrong)}
+
+\textit{Each query below appears correct but produces wrong results. Identify the logical flaw.}
+
+\begin{enumerate}[resume, label=\textbf{Q\arabic*.}]
+    \item \textbf{Task:} Find employees who earn more than everyone in the Sales department.
+    \begin{lstlisting}
+SELECT * FROM employees
+WHERE salary > (SELECT salary FROM employees 
+                WHERE department = 'Sales');
+    \end{lstlisting}
+    \answer{Flaw: Subquery returns multiple rows, causing error. Even if it worked, comparing to one salary isn't "more than everyone". Fix: WHERE salary > (SELECT MAX(salary) FROM employees WHERE department = \texttt{'Sales'}).}
+    
+    \item \textbf{Task:} Find departments where ALL employees earn more than 50000.
+    \begin{lstlisting}
+SELECT department_id FROM employees
+WHERE salary > 50000
+GROUP BY department_id;
+    \end{lstlisting}
+    \answer{Flaw: Returns departments that have AT LEAST ONE employee earning > 50000, not ALL. Fix: Use NOT EXISTS to check no employee earns <= 50000, or compare COUNT(*) with COUNT(CASE WHEN salary > 50000...).}
+    
+    \item \textbf{Task:} Find customers who have placed orders for ALL products.
+    \begin{lstlisting}
+SELECT DISTINCT customer_id FROM orders
+WHERE product_id IN (SELECT id FROM products);
+    \end{lstlisting}
+    \answer{Flaw: Returns customers who ordered ANY product, not ALL products. Fix: GROUP BY customer\_id HAVING COUNT(DISTINCT product\_id) = (SELECT COUNT(*) FROM products).}
+    
+    \item \textbf{Task:} Find employees whose salary is above the average of their department.
+    \begin{lstlisting}
+SELECT * FROM employees
+WHERE salary > (SELECT AVG(salary) FROM employees);
+    \end{lstlisting}
+    \answer{Flaw: Compares to company-wide average, not department average. Fix: Add correlation: WHERE salary > (SELECT AVG(salary) FROM employees e2 WHERE e2.dept\_id = employees.dept\_id).}
+    
+    \item \textbf{Task:} Count how many employees have no orders assigned.
+    \begin{lstlisting}
+SELECT COUNT(*) FROM employees e
+LEFT JOIN orders o ON e.id = o.employee_id
+WHERE o.id = NULL;
+    \end{lstlisting}
+    \answer{Flaw: o.id = NULL is always UNKNOWN, returns 0. Fix: WHERE o.id IS NULL. Common mistake mixing = with NULL.}
+    
+    \item \textbf{Task:} Find products that have never been ordered.
+    \begin{lstlisting}
+SELECT * FROM products
+WHERE id NOT IN (SELECT product_id FROM orders);
+    \end{lstlisting}
+    \answer{Flaw: If orders.product\_id contains any NULL, NOT IN returns empty set. Fix: Add WHERE product\_id IS NOT NULL in subquery, or use NOT EXISTS.}
+    
+    \item \textbf{Task:} Find the department with the highest total salary.
+    \begin{lstlisting}
+SELECT department_id, SUM(salary) as total
+FROM employees
+GROUP BY department_id
+ORDER BY total DESC;
+    \end{lstlisting}
+    \answer{Flaw: Returns ALL departments sorted, not just the highest. Missing LIMIT 1. Also if two depts tie, only shows one.}
+    
+    \item \textbf{Task:} Delete duplicate rows, keeping one copy of each.
+    \begin{lstlisting}
+DELETE FROM employees
+WHERE id NOT IN (SELECT MIN(id) FROM employees 
+                 GROUP BY name, email);
+    \end{lstlisting}
+    \answer{Flaw: Looks correct but fails in MySQL (can't select from table being deleted). PostgreSQL works. Also assumes id is unique identifier for "which to keep".}
+    
+    \item \textbf{Task:} Find employees who joined in the same month as their manager.
+    \begin{lstlisting}
+SELECT e.name FROM employees e
+JOIN employees m ON e.manager_id = m.id
+WHERE EXTRACT(MONTH FROM e.hire_date) = 
+      EXTRACT(MONTH FROM m.hire_date);
+    \end{lstlisting}
+    \answer{Flaw: Compares month only, ignoring year. Jan 2020 matches Jan 2015. Fix: Also compare YEAR, or compare DATE\_TRUNC(\texttt{'month'}, date).}
+    
+    \item \textbf{Task:} Find the employee with the longest name.
+    \begin{lstlisting}
+SELECT * FROM employees
+WHERE LENGTH(name) = (SELECT MAX(LENGTH(name)) 
+                      FROM employees);
+    \end{lstlisting}
+    \answer{Flaw: Returns multiple rows if tie exists. May or may not be intended. If only one needed: add LIMIT 1. Query is correct if ties should all appear.}
+    
+    \item \textbf{Task:} Increase salary by 10\% for employees who earn below average.
+    \begin{lstlisting}
+UPDATE employees
+SET salary = salary * 1.1
+WHERE salary < (SELECT AVG(salary) FROM employees);
+    \end{lstlisting}
+    \answer{Flaw: Query is actually correct in PostgreSQL (subquery evaluated once before update). But in some DBs, average recalculates during update causing inconsistent results.}
+    
+    \item \textbf{Task:} Find pairs of employees in the same department.
+    \begin{lstlisting}
+SELECT e1.name, e2.name
+FROM employees e1, employees e2
+WHERE e1.department_id = e2.department_id;
+    \end{lstlisting}
+    \answer{Flaw: Includes self-pairs (John, John) and duplicate pairs (John, Jane) and (Jane, John). Fix: Add e1.id < e2.id to get unique pairs without self-matching.}
+    
+    \item \textbf{Task:} Find orders placed on weekends.
+    \begin{lstlisting}
+SELECT * FROM orders
+WHERE EXTRACT(DOW FROM order_date) = 6 
+   OR EXTRACT(DOW FROM order_date) = 7;
+    \end{lstlisting}
+    \answer{Flaw: PostgreSQL DOW is 0-6 (Sunday=0, Saturday=6). There is no 7. Fix: DOW = 0 OR DOW = 6 for Sunday and Saturday.}
+    
+    \item \textbf{Task:} Find customers who spent more than \$1000 total.
+    \begin{lstlisting}
+SELECT customer_id FROM orders
+WHERE SUM(amount) > 1000
+GROUP BY customer_id;
+    \end{lstlisting}
+    \answer{Flaw: SUM() in WHERE clause is invalid. Aggregates can't be in WHERE. Fix: Move condition to HAVING: GROUP BY customer\_id HAVING SUM(amount) > 1000.}
+    
+    \item \textbf{Task:} Find employees not assigned to any project.
+    \begin{lstlisting}
+SELECT * FROM employees e
+WHERE e.id != ALL (SELECT employee_id 
+                   FROM project_assignments);
+    \end{lstlisting}
+    \answer{Flaw: If project\_assignments has NULL employee\_id, != ALL returns empty (NULL comparison). Fix: Add WHERE employee\_id IS NOT NULL, or use NOT EXISTS.}
+    
+    \item \textbf{Task:} Get each employee's rank by salary within their department.
+    \begin{lstlisting}
+SELECT name, department_id,
+       (SELECT COUNT(*) FROM employees e2 
+        WHERE e2.department_id = e1.department_id 
+        AND e2.salary > e1.salary) + 1 as rank
+FROM employees e1;
+    \end{lstlisting}
+    \answer{Flaw: Ties get same rank but next rank skips (1,1,3 not 1,1,2). This is RANK() behavior. If DENSE\_RANK() wanted, need different logic. Also counts those with higher salary, not >= .}
+    
+    \item \textbf{Task:} Find the most recent order for each customer.
+    \begin{lstlisting}
+SELECT customer_id, MAX(order_date), order_id
+FROM orders
+GROUP BY customer_id;
+    \end{lstlisting}
+    \answer{Flaw: order\_id not in GROUP BY and not aggregated. PostgreSQL error. MySQL returns arbitrary order\_id, not the one with MAX date. Fix: Use subquery or window function.}
+    
+    \item \textbf{Task:} Calculate percentage of employees in each department.
+    \begin{lstlisting}
+SELECT department_id, 
+       COUNT(*) / (SELECT COUNT(*) FROM employees) * 100
+FROM employees
+GROUP BY department_id;
+    \end{lstlisting}
+    \answer{Flaw: Integer division truncates. 3/10 = 0, not 0.3. Fix: Cast to decimal: COUNT(*)::DECIMAL / ... or multiply by 100.0 first.}
+    
+    \item \textbf{Task:} Find employees who have worked on projects with employees from other departments.
+    \begin{lstlisting}
+SELECT DISTINCT e1.name
+FROM employees e1
+JOIN project_assignments p1 ON e1.id = p1.employee_id
+JOIN project_assignments p2 ON p1.project_id = p2.project_id
+JOIN employees e2 ON p2.employee_id = e2.id
+WHERE e1.department_id != e2.department_id;
+    \end{lstlisting}
+    \answer{Flaw: Looks correct but fails if department\_id is NULL for any employee - != with NULL is UNKNOWN. Fix: Add AND e1.department\_id IS NOT NULL AND e2.department\_id IS NOT NULL.}
+    
+    \item \textbf{Task:} Find average order value, excluding orders over \$1000.
+    \begin{lstlisting}
+SELECT AVG(amount) FROM orders
+HAVING amount <= 1000;
+    \end{lstlisting}
+    \answer{Flaw: HAVING without GROUP BY, and HAVING can't reference non-aggregated column like this. Fix: Use WHERE amount <= 1000 (before aggregation).}
+    
+    \item \textbf{Task:} Find customers whose total orders exceed the average customer's total.
+    \begin{lstlisting}
+SELECT customer_id, SUM(amount)
+FROM orders
+GROUP BY customer_id
+HAVING SUM(amount) > AVG(SUM(amount));
+    \end{lstlisting}
+    \answer{Flaw: Can't nest aggregates like AVG(SUM()). Fix: Use subquery: HAVING SUM(amount) > (SELECT AVG(total) FROM (SELECT SUM(amount) as total FROM orders GROUP BY customer\_id) t).}
+    
+    \item \textbf{Task:} Update employee's department to match their manager's department.
+    \begin{lstlisting}
+UPDATE employees e
+SET department_id = (SELECT department_id 
+                     FROM employees 
+                     WHERE id = e.manager_id);
+    \end{lstlisting}
+    \answer{Flaw: Employees with NULL manager\_id get department set to NULL (subquery returns NULL). May not be intended. Fix: Add WHERE e.manager\_id IS NOT NULL to UPDATE.}
+    
+    \item \textbf{Task:} Find products ordered by every customer.
+    \begin{lstlisting}
+SELECT product_id FROM orders
+GROUP BY product_id
+HAVING COUNT(DISTINCT customer_id) = 
+       (SELECT COUNT(DISTINCT customer_id) FROM orders);
+    \end{lstlisting}
+    \answer{Flaw: Compares to customers who ordered SOMETHING, not ALL customers. Fix: Compare to (SELECT COUNT(*) FROM customers) for total customer count.}
+    
+    \item \textbf{Task:} Find the second most expensive product in each category.
+    \begin{lstlisting}
+SELECT category, name, price
+FROM products p1
+WHERE price = (SELECT MAX(price) FROM products p2 
+               WHERE p2.category = p1.category 
+               AND p2.price < (SELECT MAX(price) FROM products p3 
+                              WHERE p3.category = p1.category));
+    \end{lstlisting}
+    \answer{Flaw: If category has only 1 product, inner subquery returns NULL, no match. Also returns multiple if ties exist at second place. May need LIMIT or DENSE\_RANK approach.}
+    
+    \item \textbf{Task:} Find employees hired in the last 30 days of their hire year.
+    \begin{lstlisting}
+SELECT * FROM employees
+WHERE hire_date >= CURRENT_DATE - INTERVAL '30 days';
+    \end{lstlisting}
+    \answer{Flaw: Finds employees hired in last 30 days from TODAY, not last 30 days of THEIR hire year. Fix: WHERE EXTRACT(DOY FROM hire\_date) >= 336 (roughly Dec 1+).}
+    
+    \item \textbf{Task:} Count orders per month for 2024.
+    \begin{lstlisting}
+SELECT EXTRACT(MONTH FROM order_date) as month, COUNT(*)
+FROM orders
+WHERE EXTRACT(YEAR FROM order_date) = 2024
+GROUP BY EXTRACT(MONTH FROM order_date);
+    \end{lstlisting}
+    \answer{Flaw: Months with zero orders won't appear. Need to generate all 12 months and LEFT JOIN. Query only shows months that have data.}
+    
+    \item \textbf{Task:} Find employees whose name appears more than once (different people, same name).
+    \begin{lstlisting}
+SELECT name FROM employees
+GROUP BY name
+HAVING COUNT(*) > 1;
+    \end{lstlisting}
+    \answer{Flaw: Query is correct! But only returns names, not the actual duplicate rows. To get full rows: use this as subquery in WHERE name IN (...).}
+    
+    \item \textbf{Task:} Give a 5\% raise to employees who earn less than their department average.
+    \begin{lstlisting}
+UPDATE employees e1
+SET salary = salary * 1.05
+WHERE salary < (SELECT AVG(salary) FROM employees e2 
+                WHERE e2.department_id = e1.department_id);
+    \end{lstlisting}
+    \answer{Flaw: Employees in single-person departments compare to themselves. If alone, salary = avg, so no raise. May not be intended behavior.}
+    
+    \item \textbf{Task:} Find the total revenue per product category.
+    \begin{lstlisting}
+SELECT p.category, SUM(o.quantity * p.price)
+FROM products p
+JOIN orders o ON p.id = o.product_id
+GROUP BY p.category;
+    \end{lstlisting}
+    \answer{Flaw: If order has its own price (price at time of order), using p.price uses CURRENT price, not historical. Revenue calculation may be wrong if prices changed.}
+    
+    \item \textbf{Task:} Find employees who report to someone in a different city.
+    \begin{lstlisting}
+SELECT e.name FROM employees e
+JOIN employees m ON e.manager_id = m.id
+WHERE e.city <> m.city;
+    \end{lstlisting}
+    \answer{Flaw: If either city is NULL, <> returns UNKNOWN, row excluded. Employees with NULL city won't appear even if manager has different city. Fix: Handle NULLs with COALESCE or IS DISTINCT FROM.}
+\end{enumerate}
+
+\end{document}

@@ -1,0 +1,603 @@
+% !TEX program = lualatex
+\documentclass[12pt,a4paper]{article}
+\usepackage{graphicx}
+\usepackage{fontspec}
+\setmonofont{Latin Modern Mono}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{geometry}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{booktabs} 
+\usepackage{float}    
+\usepackage{amsmath}
+
+% =======================================================
+%  USER CONFIGURATION
+% =======================================================
+\newcommand{\labNo}{Lab 12}
+\newcommand{\labTopic}{PL/pgSQL Named Blocks: Functions and Procedures}
+\newcommand{\courseCode}{CSE 4308}
+\newcommand{\courseTitleShort}{DBMS Lab}
+\newcommand{\courseTitleLong}{DATABASE MANAGEMENT SYSTEMS LAB}
+\newcommand{\instructorName}{Samnun Azfar, Jr. Lecturer, CSE\\ Samia Nawsheen, Jr. Lecturer, CSE}
+\newcommand{\academicYear}{AY25-26}
+
+% --- SOLUTION TOGGLE ---
+% Change \showsolutionstrue to \showsolutionsfalse to generate 
+% the student version (hidden answers).
+\newif\ifshowsolutions
+   % \showsolutionstrue 
+\showsolutionsfalse
+% =======================================================
+
+\geometry{margin=1in}
+
+% -
+% Header and Footer Configuration
+% -
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\labNo}                        % Uses variable
+\rhead{\courseCode: \courseTitleShort} % Uses variables
+
+% Centered footer with page number
+\cfoot{\thepage}
+% Ensure header/footer width matches text block
+\setlength{\headwidth}{\textwidth}
+
+% -
+% Code Listing Style
+% -
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    tabsize=2,
+    frame=single,
+    numbers=none,
+    columns=fullflexible,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+}
+
+\lstset{style=mystyle}
+
+% Images: found next to this file (local compile_labs.sh) or via the
+% lab folder when compiled from the project root (Overleaf).
+\graphicspath{{lab_12_function_procedure_practice/}}
+
+\begin{document}
+
+% --
+% TITLE PAGE
+% --
+\begin{titlepage}
+    \centering
+    \vspace*{2\baselineskip}
+
+    \rule{14cm}{2pt}\vspace*{-0.8\baselineskip}\vspace*{1.5pt}
+    \rule{14cm}{0.5pt}\vspace{2\baselineskip}
+
+    {\Huge\bfseries\scshape \labNo\par} % Uses variable
+    \vspace{3mm}
+    {\Large \labTopic} % Uses variable
+    \vspace{3mm}
+
+    \rule{14cm}{0.5pt}\vspace*{-0.7\baselineskip}\vspace{2.5pt}
+    \rule{14cm}{2pt}
+
+    \vspace{2\baselineskip}
+
+    {\Large\bfseries \courseCode\par} % Uses variable
+    \vspace{1\baselineskip}
+    {\large \courseTitleLong\par} % Uses variable
+
+    \vfill
+    {\normalsize Prepared by:\\ \instructorName\par} % Uses variable
+    {\normalsize Academic Year: \academicYear\par} % Uses variable
+\end{titlepage}
+
+\newpage
+\tableofcontents
+\newpage
+
+% =======================================================
+% SECTION: LAB WORKFLOW
+% =======================================================
+\section{Lab Workflow}
+
+
+
+\textit{Repeat this subsection for every single lab.}
+
+\begin{enumerate}
+\item Connect to the internet by running nmtui in terminal, add a dsl connection, then go back and activate that dsl connection. Make sure that your net id is not being used in any other pc or router, if you face any issue, use any other net id from your friends which is not being used.
+
+\item Download all the files posted in the google classroom.
+
+\item Disconnect from the \textbf{dsl} connection via nmtui, connect to the ethernet/wired connection via nmtui. If no such connection exists, create an \textbf{ethernet} connection  and then activate.
+
+    \item \textbf{Create Your Role and Database}
+
+Inside the PostgreSQL shell, create your own role (user) and database.
+
+1. In the Linux terminal:
+\begin{lstlisting}[language=bash]
+psql
+\end{lstlisting}
+
+Expected prompt:
+\begin{lstlisting}
+cse=#
+\end{lstlisting}
+
+2. Create Your Role and Database
+
+Copy and run the following commands inside PostgreSQL:
+\begin{lstlisting}[language=SQL]
+-- 1. Terminate existing database connections
+SELECT pg_terminate_backend(pid)
+FROM pg_stat_activity
+WHERE datname = 'cse4308_12345'
+  AND pid <> pg_backend_pid();
+
+-- 2. Remove existing database
+DROP DATABASE IF EXISTS cse4308_12345;
+
+-- 3. Remove existing role
+DROP ROLE IF EXISTS student_12345;
+
+-- 4. Create role
+CREATE ROLE student_12345 LOGIN;
+
+-- 5. Set password
+ALTER ROLE student_12345
+WITH PASSWORD 'student12345';
+
+-- 6. Create database
+CREATE DATABASE cse4308_12345
+OWNER student_12345;
+
+-- 7. Grant privileges
+GRANT ALL PRIVILEGES
+ON DATABASE cse4308_12345
+TO student_12345;
+\end{lstlisting}
+
+3. Exit PostgreSQL:
+
+   \begin{lstlisting}[language=SQL]
+   \q
+   \end{lstlisting}
+
+\item \textbf{Connect Using Your Newly Created User}
+
+1. Connect to Your Database:
+
+   Use the following command to log in as the \texttt{student\_12345} user:
+
+   \begin{lstlisting}[language=SQL]
+   psql -h localhost -U student_12345 -d cse4308_12345
+   \end{lstlisting}
+
+2. Verify the Connection:
+
+   Verify that you are connected to the correct database with the following command:
+
+   \begin{lstlisting}[language=SQL]
+   \conninfo
+   \end{lstlisting}
+
+   Expected output:
+
+   \begin{lstlisting}
+   Database: cse4308_12345, User: student_12345
+   \end{lstlisting}
+
+3. Exit PostgreSQL:
+
+   \begin{lstlisting}[language=SQL]
+   \q
+   \end{lstlisting}
+
+\item \textbf{Load the Lab SQL File (MUST be run outside psql)}
+
+Load the SQL file that sets up the tables and inserts initial data.
+
+1. Load the SQL File:
+
+   Run the following command to load the lab SQL file:
+
+   \begin{lstlisting}[language=SQL]
+   psql -h localhost -U student_12345 -d cse4308_12345 -f /home/cse/Downloads/lab_12_setup.sql
+   \end{lstlisting}
+
+   This will:
+   - Drop old tables (if they exist).
+   - Create new tables.
+   - Insert initial rows of data.
+
+\item \textbf{Reconnect and Verify Tables}
+
+After loading the SQL file, reconnect to PostgreSQL to verify that the tables have been created.
+
+1. Reconnect to Your Database:
+
+   \begin{lstlisting}[language=SQL]
+   psql -h localhost -U student_12345 -d cse4308_12345
+   \end{lstlisting}
+
+2. Check Tables:
+
+   Verify the tables have been created by listing them:
+
+   \begin{lstlisting}[language=SQL]
+   \dt
+   \end{lstlisting}
+
+3. View Table Data:
+
+   Verify the data by running the following SQL queries:
+
+   \begin{lstlisting}[language=SQL]
+   SELECT * FROM <table_name>;
+   \end{lstlisting}
+
+\item Open a text editor and save it in the appropriate submission name format \\ \texttt{fullid\_CSE4308\_L12\_T1.sql}. You will use this text editor to write your solutions, make sure to save it after writing each solution. The structure of this file will be:
+\begin{lstlisting}[language=SQL]
+-- Task 1
+INSERT INTO students (student_id, name, major, gpa)
+VALUES (104, 'David', 'ME', 3.60);
+--Task 2
+SELECT name, gpa FROM students WHERE major = 'CSE';
+\end{lstlisting}
+\end{enumerate}
+
+% =======================================================
+% SECTION: DATABASE SCHEMA
+% =======================================================
+\newpage
+\section{Database Schema \& Data}
+\textbf{Instructions:} Save this code as \texttt{lab\_12\_setup.sql} and run it using \texttt{\textbackslash i lab\_12\_setup.sql} in your \texttt{psql} terminal. 
+
+\begin{lstlisting}[language=SQL, caption={lab\_12\_setup.sql}]
+-- 1. CLEANUP
+DROP TABLE IF EXISTS depositor CASCADE;
+DROP TABLE IF EXISTS borrower CASCADE;
+DROP TABLE IF EXISTS account CASCADE;
+DROP TABLE IF EXISTS loan CASCADE;
+DROP TABLE IF EXISTS customer CASCADE;
+DROP TABLE IF EXISTS branch CASCADE;
+
+-- 2. CREATE TABLES
+CREATE TABLE branch
+   (branch_name     VARCHAR(15) NOT NULL,
+    branch_city     VARCHAR(15) NOT NULL,
+    assets          NUMERIC     NOT NULL,
+    PRIMARY KEY(branch_name));
+    
+CREATE TABLE customer
+   (customer_name   VARCHAR(15) NOT NULL,
+    customer_street VARCHAR(12) NOT NULL,
+    customer_city   VARCHAR(15) NOT NULL,
+    PRIMARY KEY(customer_name));
+
+CREATE TABLE account
+   (account_number  VARCHAR(15) NOT NULL,
+    branch_name     VARCHAR(15) NOT NULL,
+    balance         NUMERIC     NOT NULL,
+    PRIMARY KEY(account_number),
+    FOREIGN KEY(branch_name) REFERENCES branch(branch_name));
+
+CREATE TABLE loan
+   (loan_number     VARCHAR(15) NOT NULL,
+    branch_name     VARCHAR(15) NOT NULL,
+    amount          NUMERIC     NOT NULL,
+    PRIMARY KEY(loan_number),
+    FOREIGN KEY(branch_name) REFERENCES branch(branch_name));
+
+CREATE TABLE depositor
+   (customer_name   VARCHAR(15) NOT NULL,
+    account_number  VARCHAR(15) NOT NULL,
+    PRIMARY KEY(customer_name, account_number),
+    FOREIGN KEY(account_number) REFERENCES account(account_number),
+    FOREIGN KEY(customer_name) REFERENCES customer(customer_name));
+
+CREATE TABLE borrower
+   (customer_name   VARCHAR(15) NOT NULL,
+    loan_number     VARCHAR(15) NOT NULL,
+    PRIMARY KEY(customer_name, loan_number),
+    FOREIGN KEY(customer_name) REFERENCES customer(customer_name),
+    FOREIGN KEY(loan_number) REFERENCES loan(loan_number));
+
+-- 3. POPULATE RELATIONS
+INSERT INTO customer VALUES ('Jones',    'Main',       'Harrison');
+INSERT INTO customer VALUES ('Smith',    'Main',       'Rye');
+INSERT INTO customer VALUES ('Hayes',    'Main',       'Harrison');
+INSERT INTO customer VALUES ('Curry',    'North',      'Rye');
+INSERT INTO customer VALUES ('Lindsay',  'Park',       'Pittsfield');
+INSERT INTO customer VALUES ('Turner',   'Putnam',     'Stamford');
+INSERT INTO customer VALUES ('Williams', 'Nassau',     'Princeton');
+INSERT INTO customer VALUES ('Adams',    'Spring',     'Pittsfield');
+INSERT INTO customer VALUES ('Johnson',  'Alma',       'Palo Alto');
+INSERT INTO customer VALUES ('Glenn',    'Sand Hill',  'Woodside');
+INSERT INTO customer VALUES ('Brooks',   'Senator',    'Brooklyn');
+INSERT INTO customer VALUES ('Green',    'Walnut',     'Stamford');
+INSERT INTO customer VALUES ('Jackson',  'University', 'Salt Lake');
+INSERT INTO customer VALUES ('Majeris',  'First',      'Rye');
+INSERT INTO customer VALUES ('McBride',  'Safety',     'Rye');
+
+INSERT INTO branch VALUES ('Downtown',   'Brooklyn',    900000);
+INSERT INTO branch VALUES ('Redwood',    'Palo Alto',  2100000);
+INSERT INTO branch VALUES ('Perryridge', 'Horseneck',  1700000);
+INSERT INTO branch VALUES ('Mianus',     'Horseneck',   400200);
+INSERT INTO branch VALUES ('Round Hill', 'Horseneck',  8000000);
+INSERT INTO branch VALUES ('Pownal',     'Bennington',  400000);
+INSERT INTO branch VALUES ('North Town', 'Rye',        3700000);
+INSERT INTO branch VALUES ('Brighton',   'Brooklyn',   7000000);
+INSERT INTO branch VALUES ('Central',    'Rye',         400280);
+
+INSERT INTO account VALUES ('A-101', 'Downtown',   500);
+INSERT INTO account VALUES ('A-215', 'Mianus',     700);
+INSERT INTO account VALUES ('A-102', 'Perryridge', 400);
+INSERT INTO account VALUES ('A-305', 'Round Hill', 350);
+INSERT INTO account VALUES ('A-201', 'Perryridge', 900);
+INSERT INTO account VALUES ('A-222', 'Redwood',    700);
+INSERT INTO account VALUES ('A-217', 'Brighton',   750);
+INSERT INTO account VALUES ('A-333', 'Central',    850);
+INSERT INTO account VALUES ('A-444', 'North Town', 625);
+
+INSERT INTO depositor VALUES ('Johnson', 'A-101');
+INSERT INTO depositor VALUES ('Smith',   'A-215');
+INSERT INTO depositor VALUES ('Hayes',   'A-102');
+INSERT INTO depositor VALUES ('Hayes',   'A-101');
+INSERT INTO depositor VALUES ('Turner',  'A-305');
+INSERT INTO depositor VALUES ('Johnson', 'A-201');
+INSERT INTO depositor VALUES ('Jones',   'A-217');
+INSERT INTO depositor VALUES ('Lindsay', 'A-222');
+INSERT INTO depositor VALUES ('Majeris', 'A-333');
+INSERT INTO depositor VALUES ('Smith',   'A-444');
+
+INSERT INTO loan VALUES ('L-17', 'Downtown',   1000);
+INSERT INTO loan VALUES ('L-23', 'Redwood',    2000);
+INSERT INTO loan VALUES ('L-15', 'Perryridge', 1500);
+INSERT INTO loan VALUES ('L-14', 'Downtown',   1500);
+INSERT INTO loan VALUES ('L-93', 'Mianus',      500);
+INSERT INTO loan VALUES ('L-11', 'Round Hill',  900);
+INSERT INTO loan VALUES ('L-16', 'Perryridge', 1300);
+INSERT INTO loan VALUES ('L-20', 'North Town', 7500);
+INSERT INTO loan VALUES ('L-21', 'Central',     570);
+
+INSERT INTO borrower VALUES ('Jones',    'L-17');
+INSERT INTO borrower VALUES ('Smith',    'L-23');
+INSERT INTO borrower VALUES ('Hayes',    'L-15');
+INSERT INTO borrower VALUES ('Jackson',  'L-14');
+INSERT INTO borrower VALUES ('Curry',    'L-93');
+INSERT INTO borrower VALUES ('Smith',    'L-11');
+INSERT INTO borrower VALUES ('Williams', 'L-17');
+INSERT INTO borrower VALUES ('Adams',    'L-16');
+INSERT INTO borrower VALUES ('McBride',  'L-20');
+INSERT INTO borrower VALUES ('Smith',    'L-21');
+\end{lstlisting}
+
+ewpage
+% =======================================================
+% SECTION: LAB TASKS
+% =======================================================
+\newpage
+\section{Lab Tasks}
+\begin{enumerate}
+
+    % Task 1
+    \item Warm-up
+    \begin{enumerate}
+        \item Print your name and student ID.
+        \item Take two numbers as input and print their product.
+        \item Take a number as input and print whether it is a whole number or a fraction.
+    \end{enumerate}
+
+    \ifshowsolutions
+    \textbf{Solution:}
+    \begin{lstlisting}[language=SQL]
+-- 1(a). Print Name and Student ID
+DO $$
+BEGIN
+    RAISE NOTICE 'Name: John Doe, Student ID: 123456';
+END;
+$$;
+
+-- 1(b). Print product of two numbers
+DO $$
+DECLARE
+    num1 NUMERIC := 15;
+    num2 NUMERIC := 3;
+BEGIN
+    RAISE NOTICE 'The product of % and % is %', num1, num2, num1 * num2;
+END;
+$$;
+
+-- 1(c). Check whole or fraction
+DO $$
+DECLARE
+    num NUMERIC := 12.5; 
+BEGIN
+    -- Casting to INT drops decimal points. 
+    -- If it still equals the original number, it's a whole number.
+    IF CAST(num AS INT) = num THEN
+        RAISE NOTICE '% is a whole number.', num;
+    ELSE
+        RAISE NOTICE '% is a fraction.', num;
+    END IF;
+END;
+$$;
+    \end{lstlisting}
+    \fi
+
+    % Task 2
+    \item Execute the provided \texttt{lab\_12\_setup.sql} file and consider the schema for the banking database. Write a procedure to find the top $N$ branches with the highest total loan amounts and list of their borrowers' names (total loan amount means the sum of all loans issued by the branch). The procedure will take $N$ as input and print the details up to $N$ branches. If $N$ is greater than the number of branches, then it will print an error message.
+
+    \ifshowsolutions
+    \textbf{Solution:}
+    \begin{lstlisting}[language=SQL]
+CREATE OR REPLACE PROCEDURE get_top_n_branches(p_n INT)
+LANGUAGE plpgsql AS $$
+DECLARE
+    v_total_branches INT;
+    v_branch RECORD;
+    v_borrower RECORD;
+BEGIN
+    -- Verify N against total branches
+    SELECT COUNT(DISTINCT branch_name) INTO v_total_branches FROM branch;
+    
+    IF p_n > v_total_branches THEN
+        RAISE NOTICE 'Error: Parameter N (%) exceeds the total number of branches (%).', p_n, v_total_branches;
+        RETURN;
+    END IF;
+    
+    RAISE NOTICE '--- Top % Branches by Loan Amount ---', p_n;
+    
+    -- Outer Loop: Find the top branches and their total loan amounts
+    FOR v_branch IN 
+        SELECT branch_name, SUM(amount) as total_loan
+        FROM loan
+        GROUP BY branch_name
+        ORDER BY total_loan DESC
+        LIMIT p_n
+    LOOP
+        RAISE NOTICE 'Branch: %, Total Loans: %', v_branch.branch_name, v_branch.total_loan;
+        RAISE NOTICE 'Borrowers:';
+        
+        -- Inner Loop: Find the borrowers specifically for the current branch
+        FOR v_borrower IN 
+            SELECT b.customer_name
+            FROM borrower b
+            JOIN loan l ON b.loan_number = l.loan_number
+            WHERE l.branch_name = v_branch.branch_name
+        LOOP
+            RAISE NOTICE '  - %', v_borrower.customer_name;
+        END LOOP;
+        
+        RAISE NOTICE '-----------------------------------';
+    END LOOP;
+END;
+$$;
+    \end{lstlisting}
+    \fi
+
+    % Task 3
+    \item Write a procedure to find eligible customers for a special financial award. A customer is eligible for the award if their total deposits are above the average deposit amount and they have at least one loan with an amount greater than 1,000. The procedure will print out the names of the eligible customers.
+
+    \ifshowsolutions
+    \textbf{Solution:}
+    \begin{lstlisting}[language=SQL]
+CREATE OR REPLACE PROCEDURE find_award_eligible_customers()
+LANGUAGE plpgsql AS $$
+DECLARE
+    v_avg_deposit NUMERIC;
+    v_cust RECORD;
+BEGIN
+    -- Calculate average deposit amount across all accounts
+    SELECT AVG(balance) INTO v_avg_deposit FROM account;
+
+    RAISE NOTICE 'Average Deposit Amount: %', ROUND(v_avg_deposit, 2);
+    RAISE NOTICE '--- Eligible Customers ---';
+
+    -- Find intersection of customers meeting both conditions
+    FOR v_cust IN (
+        SELECT d.customer_name
+        FROM depositor d
+        JOIN account a ON d.account_number = a.account_number
+        GROUP BY d.customer_name
+        HAVING SUM(a.balance) > v_avg_deposit
+        INTERSECT
+        SELECT br.customer_name
+        FROM borrower br
+        JOIN loan l ON br.loan_number = l.loan_number
+        WHERE l.amount > 1000
+    ) LOOP
+        RAISE NOTICE 'Customer Name: %', v_cust.customer_name;
+    END LOOP;
+END;
+$$;
+
+-- Execution Call:
+DO $$
+BEGIN
+    CALL find_award_eligible_customers();
+END;
+$$;
+    \end{lstlisting}
+    \fi
+
+    % Task 4
+    \item Develop a function to facilitate loan repayment for a customer. The function should accept two input parameters: the customer's name and the payment amount. It should return the customer's remaining loan balance after the payment is applied. The function must ensure that the loan table is updated accordingly. In case the customer has no outstanding loans, the function should display an appropriate error message. Additionally, if the payment amount exceeds the outstanding loan balance, the function must also display an error message.
+
+    \ifshowsolutions
+    \textbf{Solution:}
+    \begin{lstlisting}[language=SQL]
+CREATE OR REPLACE FUNCTION process_loan_repayment(p_customer_name VARCHAR, p_payment_amount NUMERIC)
+RETURNS NUMERIC
+LANGUAGE plpgsql AS $$
+DECLARE
+    v_loan_number VARCHAR;
+    v_current_amount NUMERIC;
+    v_remaining_amount NUMERIC;
+BEGIN
+    -- Identify the customer's loan
+    SELECT l.loan_number, l.amount INTO v_loan_number, v_current_amount
+    FROM borrower br
+    JOIN loan l ON br.loan_number = l.loan_number
+    WHERE br.customer_name = p_customer_name
+    LIMIT 1;
+
+    -- Check if customer has an active loan
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Transaction Error: Customer % has no outstanding loans.', p_customer_name;
+    END IF;
+
+    -- Verify payment amount does not exceed the balance
+    IF p_payment_amount > v_current_amount THEN
+        RAISE EXCEPTION 'Transaction Error: Payment amount % exceeds the outstanding balance of %.', p_payment_amount, v_current_amount;
+    END IF;
+
+    -- Calculate and update the new balance
+    v_remaining_amount := v_current_amount - p_payment_amount;
+
+    UPDATE loan 
+    SET amount = v_remaining_amount 
+    WHERE loan_number = v_loan_number;
+
+    RETURN v_remaining_amount;
+END;
+$$;
+
+-- Execution Call:
+DO $$
+DECLARE
+    v_new_balance NUMERIC;
+BEGIN
+    v_new_balance := process_loan_repayment('Smith', 500);
+    RAISE NOTICE 'Payment successful. Remaining balance for Smith: %', v_new_balance;
+END;
+$$;
+    \end{lstlisting}
+    \fi
+
+\end{enumerate}
+
+\end{document}
